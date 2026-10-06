@@ -8,7 +8,7 @@ const columns = [
   { key: 'role', label: 'Rôle' }
 ];
 
-const empty = { username: '', password: '', role: 'user' };
+const empty = { username: '', password: '', role: 'viewer' };
 
 export default function Users() {
   const { token } = useAuth();
@@ -40,7 +40,7 @@ export default function Users() {
         <input placeholder="Identifiant" value={form.username} onChange={set('username')} required />
         <input type="password" placeholder="Mot de passe" value={form.password} onChange={set('password')} required />
         <select value={form.role} onChange={set('role')}>
-          <option value="user">Utilisateur</option>
+          <option value="viewer">Lecture seule</option>
           <option value="admin">Admin</option>
         </select>
         <button type="submit">Créer</button>
