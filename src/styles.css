@@ -1,0 +1,20 @@
+:root { font-family: system-ui, sans-serif; color: #1c1f26; background: #f4f5f7; }
+body { margin: 0; }
+main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+.topbar { display: flex; align-items: center; gap: 1rem; padding: .6rem 1rem; background: #1c1f26; color: #fff; }
+.topbar nav { display: flex; gap: .8rem; }
+.topbar a { color: #aab; text-decoration: none; }
+.topbar a.active { color: #fff; }
+.spacer { flex: 1; }
+section { margin-bottom: 1.5rem; }
+h2 { font-size: 1.1rem; margin: 0 0 .5rem; }
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid #e3e5ea; }
+th { background: #eceef2; font-weight: 600; }
+button { padding: .4rem .8rem; border: 0; border-radius: 4px; background: #2d5be3; color: #fff; cursor: pointer; }
+input, select { padding: .5rem; border: 1px solid #c9ccd4; border-radius: 4px; }
+.card { background: #fff; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; }
+.card.inline { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.card.inline h2 { width: 100%; }
+.login { max-width: 320px; margin: 15vh auto; display: flex; flex-direction: column; gap: .8rem; }
+.error { color: #c0392b; margin: 0; }
