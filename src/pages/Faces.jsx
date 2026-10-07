@@ -20,15 +20,13 @@ function Thumb({ id }) {
 function AddFace({ onDone }) {
   const { token } = useAuth();
   const [name, setName] = useState('');
-  const [photo, setPhoto] = useState({ source: 'sentinel' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async (e) => {
     e.preventDefault();
-    if (!photo) return setError('Prenez ou choisissez une photo du visage');
     setBusy(true);
     try {
-      await api.addFace(token, name.trim(), photo.source === 'sentinel' ? undefined : photo.image);
+      await api.addFace(token, name.trim());
       onDone();
     } catch (err) {
       setError(err.message);
@@ -41,9 +39,9 @@ function AddFace({ onDone }) {
         <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={64} autoFocus />
       </label>
       <p className="hint">Utilisez l'identifiant d'un compte pour lui permettre la connexion faciale.</p>
-      <FaceCapture value={photo} onChange={setPhoto} />
+      <FaceCapture />
       <ErrorText>{error}</ErrorText>
-      <div className="form-actions"><button type="submit" disabled={busy}>{busy ? 'Enregistrement…' : 'Ajouter'}</button></div>
+      <div className="form-actions"><button type="submit" disabled={busy}>{busy ? 'Capture…' : 'Valider le visage'}</button></div>
     </form>
   );
 }

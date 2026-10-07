@@ -245,8 +245,7 @@ td.empty, .empty { color: var(--muted); text-align: center; padding: 1.2rem; }
 .segmented button { flex: 1; background: transparent; color: var(--text-2); padding: .4rem .7rem; font-size: .88rem; }
 .segmented button.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px #0000001a; }
 .face-capture { display: flex; flex-direction: column; gap: .7rem; padding: .9rem; border: 1px dashed var(--border); border-radius: 8px; }
-.face-preview { display: flex; flex-direction: column; gap: .6rem; align-items: center; }
-.face-preview img, .face-preview video { width: 100%; max-width: 420px; border-radius: 8px; background: #000; }
+.face-live { max-width: 420px; width: 100%; margin: 0 auto; }
 
 /* Visages */
 .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }

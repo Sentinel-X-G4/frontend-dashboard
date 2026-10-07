@@ -6,22 +6,20 @@ import Table from '../components/Table.jsx';
 import FaceCapture from '../components/FaceCapture.jsx';
 import { Badge, Card, ErrorText, Modal, RoleBadge } from '../components/ui.jsx';
 
-// Enregistre le visage d'un compte (nommé comme le compte : sert à la connexion faciale)
-const enrollFace = (token, username, photo) => api.addFace(token, username, photo.source === 'sentinel' ? undefined : photo.image);
+// Enregistre le visage d'un compte, capturé par la caméra Sentinel (nommé comme le compte : sert à la connexion faciale)
+const enrollFace = (token, username) => api.addFace(token, username);
 
 function CreateUser({ onDone }) {
   const { token, user } = useAuth();
   const roles = assignableRoles(user);
   const [form, setForm] = useState({ username: '', password: '', role: 'user' });
   const [withFace, setWithFace] = useState(true);
-  const [photo, setPhoto] = useState({ source: 'sentinel' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
-    if (withFace && !photo) return setError('Prenez ou choisissez une photo du visage');
     setBusy(true);
     setError('');
     try {
@@ -34,7 +32,7 @@ function CreateUser({ onDone }) {
     let warning = '';
     if (withFace) {
       try {
-        await enrollFace(token, form.username, photo);
+        await enrollFace(token, form.username);
       } catch (err) {
         warning = `Compte créé, mais visage non enregistré : ${err.message}`;
       }
@@ -65,7 +63,7 @@ function CreateUser({ onDone }) {
         <input type="checkbox" checked={withFace} onChange={(e) => setWithFace(e.target.checked)} />
         Enregistrer son visage (connexion par reconnaissance faciale{form.role === 'superadmin' ? ', non utilisable par un superadmin' : ''})
       </label>
-      {withFace && <FaceCapture value={photo} onChange={setPhoto} />}
+      {withFace && <FaceCapture />}
 
       <ErrorText>{error}</ErrorText>
       <div className="form-actions">
@@ -77,14 +75,12 @@ function CreateUser({ onDone }) {
 
 function AddFace({ account, onDone }) {
   const { token } = useAuth();
-  const [photo, setPhoto] = useState({ source: 'sentinel' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    if (!photo) return setError('Prenez ou choisissez une photo du visage');
     setBusy(true);
     try {
-      await enrollFace(token, account.username, photo);
+      await enrollFace(token, account.username);
       onDone(`Visage ajouté à ${account.username}`, true);
     } catch (err) {
       setError(err.message);
@@ -93,10 +89,10 @@ function AddFace({ account, onDone }) {
   };
   return (
     <div className="form">
-      <FaceCapture value={photo} onChange={setPhoto} />
+      <FaceCapture />
       <ErrorText>{error}</ErrorText>
       <div className="form-actions">
-        <button type="button" onClick={submit} disabled={busy}>{busy ? 'Enregistrement…' : 'Enregistrer le visage'}</button>
+        <button type="button" onClick={submit} disabled={busy}>{busy ? 'Capture…' : 'Valider le visage'}</button>
       </div>
     </div>
   );

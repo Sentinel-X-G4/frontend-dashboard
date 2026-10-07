@@ -62,9 +62,8 @@ export const deleteUser = (token, id) => request(`/users/${id}`, { method: 'DELE
 
 // Visages autorisés. Un visage nommé comme un compte sert à la connexion faciale de ce compte.
 export const getFaces = (token) => request('/faces', { token });
-// image : data URL JPEG/PNG ; sans image, le visage est pris sur la caméra Sentinel
-export const addFace = (token, name, image) =>
-  request('/faces', { method: 'POST', token, body: { name, ...(image && { image }) } });
+// Le visage est pris par le backend sur l'image courante de la caméra Sentinel
+export const addFace = (token, name) => request('/faces', { method: 'POST', token, body: { name } });
 export const deleteFace = (token, id) => request(`/faces/${id}`, { method: 'DELETE', token });
 // Vignette : <img src> ne peut pas envoyer le Bearer, d'où un blob -> URL.createObjectURL
 export async function getFaceImage(token, id) {

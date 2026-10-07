@@ -10,7 +10,7 @@ Il ne parle qu'au backend-api (`/api/v1`, REST uniquement), derrière le reverse
 | **Supervision** : indicateurs, webcam en direct + identité reconnue, état des appareils, courbes température / humidité / gaz, dernières alertes | ✓ | ✓ | ✓ |
 | **Alertes** : historique filtrable, paginé | lecture | + acquittement | + acquittement |
 | **Comptes** : création avec enregistrement du visage, rôle, mot de passe, suppression | | comptes `user` | tous |
-| **Visages autorisés** : photos par personne, ajout (caméra Sentinel, webcam du navigateur, fichier), suppression | | ✓ | ✓ |
+| **Visages autorisés** : photos par personne, ajout par la caméra Sentinel (aperçu en direct, bouton « Valider le visage »), suppression | | ✓ | ✓ |
 | **Service IoT** : santé du service de détection (MQTT, base, modèle, appareils) | | ✓ | ✓ |
 | **Mon compte** : droits, changement de mot de passe | ✓ | ✓ | ✓ |
 
@@ -42,4 +42,3 @@ VITE_BACKEND_URL=http://localhost:3000 npm run dev   # proxy /api vers le backen
 npm run build                                        # fichiers statiques dans dist/ (servis par nginx dans l'image)
 ```
 
-La capture « Webcam de cet appareil » demande une page en HTTPS (ou `localhost`).
