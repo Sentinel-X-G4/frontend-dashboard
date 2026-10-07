@@ -1,20 +1,21 @@
-// Tableau générique : columns = [{ key, label, render? }], rows = []. Reste vide tant qu'il n'y a pas de données.
-export default function Table({ title, columns, rows }) {
+// Tableau générique : columns = [{ key, label, render?, className? }], rows = [].
+export default function Table({ columns, rows, empty = 'Aucune donnée', rowKey = (row, i) => row.id ?? row.device_id ?? i }) {
   return (
-    <section>
-      <h2>{title}</h2>
+    <div className="table-wrap">
       <table>
         <thead>
-          <tr>{columns.map((c) => <th key={c.key}>{c.label}</th>)}</tr>
+          <tr>{columns.map((c) => <th key={c.key} className={c.className}>{c.label}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.map((row, i) => (
-            <tr key={row.id ?? row.device_id ?? i}>
-              {columns.map((c) => <td key={c.key}>{c.render ? c.render(row) : row[c.key]}</td>)}
+          {rows.length === 0 ? (
+            <tr><td colSpan={columns.length} className="empty">{empty}</td></tr>
+          ) : rows.map((row, i) => (
+            <tr key={rowKey(row, i)}>
+              {columns.map((c) => <td key={c.key} className={c.className}>{c.render ? c.render(row) : row[c.key]}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
-    </section>
+    </div>
   );
 }
