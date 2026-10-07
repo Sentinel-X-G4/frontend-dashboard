@@ -8,7 +8,6 @@ import Alerts from './pages/Alerts.jsx';
 import Users from './pages/Users.jsx';
 import Faces from './pages/Faces.jsx';
 import System from './pages/System.jsx';
-import Training from './pages/Training.jsx';
 import Account from './pages/Account.jsx';
 
 // Connecté obligatoire ; permission = droit requis (roles.js), sinon retour à la supervision
@@ -29,7 +28,6 @@ export default function App() {
         <Route path="/users" element={<Protected permission="users"><Users /></Protected>} />
         <Route path="/faces" element={<Protected permission="faces"><Faces /></Protected>} />
         <Route path="/system" element={<Protected permission="system"><System /></Protected>} />
-        <Route path="/training" element={<Protected permission="training"><Training /></Protected>} />
         <Route path="/account" element={<Account />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

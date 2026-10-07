@@ -34,14 +34,22 @@ export const changePassword = (token, currentPassword, newPassword) =>
   request('/auth/password', { method: 'PATCH', token, body: { currentPassword, newPassword } });
 
 // --- Supervision (tous les rôles) ---
+// Alertes récentes, états des appareils, stats et identité caméra en une seule requête
+export const getOverview = (token) => request('/overview', { token });
 export const getAlerts = (token, params = {}) => {
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
   return request(`/alerts${query ? `?${query}` : ''}`, { token });
 };
 export const getDevices = (token) => request('/devices', { token });
 export const getStats = (token) => request('/stats', { token });
-// identity = 'none' | 'authorized' | 'unknown' (temps réel : init_camera / camera_status)
+// identity = 'none' | 'authorized' | 'unknown'
 export const getCamera = (token) => request('/camera', { token });
+// Image courante de la webcam : <img src> ne peut pas envoyer le Bearer, d'où un blob -> URL
+export async function getCameraSnapshot(token) {
+  const res = await fetch(`${BASE}/camera/snapshot`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Erreur ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
 
 // --- Admin et superadmin ---
 export const acknowledgeAlert = (token, id) => request(`/alerts/${id}/acknowledge`, { method: 'PATCH', token, body: {} });
@@ -67,8 +75,3 @@ export async function getFaceImage(token, id) {
 
 // Service de détection (backend-iot-alerts), relayé par le backend
 export const getIotHealth = (token) => request('/iot/health', { token });
-export const getRecordings = (token) => request('/iot/recording', { token });
-export const startRecording = (token, session) => request('/iot/recording/start', { method: 'POST', token, body: session });
-export const stopRecording = (token, deviceId) =>
-  request('/iot/recording/stop', { method: 'POST', token, body: deviceId ? { device_id: deviceId } : {} });
-export const reloadModel = (token) => request('/iot/reload-model', { method: 'POST', token });

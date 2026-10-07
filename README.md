@@ -1,7 +1,7 @@
 # frontend-dashboard
 
-Dashboard React (Vite) de Sentinel-X : supervision temps réel et actions selon le rôle du compte.
-Il ne parle qu'au backend-api (`/api/v1` en REST, `/socket.io` en WebSocket), derrière le reverse proxy.
+Dashboard React (Vite) de Sentinel-X : supervision en direct et actions selon le rôle du compte.
+Il ne parle qu'au backend-api (`/api/v1`, REST uniquement), derrière le reverse proxy.
 
 ## Pages et rôles
 
@@ -12,7 +12,6 @@ Il ne parle qu'au backend-api (`/api/v1` en REST, `/socket.io` en WebSocket), de
 | **Comptes** : création avec enregistrement du visage, rôle, mot de passe, suppression | | comptes `user` | tous |
 | **Visages autorisés** : photos par personne, ajout (caméra Sentinel, webcam du navigateur, fichier), suppression | | ✓ | ✓ |
 | **Service IoT** : santé du service de détection (MQTT, base, modèle, appareils) | | ✓ | ✓ |
-| ↳ Entraînement de l'IA : sessions d'enregistrement étiquetées, rechargement du modèle | | | ✓ |
 | **Mon compte** : droits, changement de mot de passe | ✓ | ✓ | ✓ |
 
 Les droits affichés (`src/roles.js`) reflètent ceux du backend, qui reste seul juge.
@@ -28,7 +27,7 @@ identifiant, à la création du compte ou ensuite (bouton « + Visage » de la p
 | `src/api.js` | appels REST (jeton en Bearer ; un 401 déconnecte) |
 | `src/auth.jsx` | session (sessionStorage), connexion mot de passe / visage, rôle relu au chargement |
 | `src/roles.js` | rôles et droits par fonction |
-| `src/live.jsx` | WebSocket unique : alertes, appareils, identité caméra, images webcam, historique des mesures |
+| `src/live.jsx` | interrogation de l'API toutes les 0,5 s : une requête `/overview` (alertes, appareils, stats, identité caméra) et l'image webcam, historique des mesures |
 | `src/components/` | mise en page, courbe SVG, webcam, capture de visage, briques communes |
 | `src/pages/` | une page par entrée du menu |
 
@@ -39,7 +38,7 @@ en mémoire) ; l'historique long est dans Grafana.
 
 ```bash
 npm ci
-VITE_BACKEND_URL=http://localhost:3000 npm run dev   # proxy /api et /socket.io vers le backend
+VITE_BACKEND_URL=http://localhost:3000 npm run dev   # proxy /api vers le backend
 npm run build                                        # fichiers statiques dans dist/ (servis par nginx dans l'image)
 ```
 

@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../auth.jsx';
 import { useLive } from '../live.jsx';
-import * as api from '../api.js';
 import CameraFeed from '../components/CameraFeed.jsx';
 import LineChart from '../components/LineChart.jsx';
 import {
-  Badge, Card, DEVICE_STATE, DEVICE_STATUS, Empty, ErrorText, SeverityBadge, StatTile, timeAgo
+  Badge, Card, DEVICE_STATE, DEVICE_STATUS, Empty, SeverityBadge, timeAgo
 } from '../components/ui.jsx';
 
 const ALERT_LABELS = { feu: 'Feu', fuite_gaz: 'Gaz', presence: 'Présence' };
@@ -45,47 +43,63 @@ function DeviceCard({ device }) {
   );
 }
 
+// Phrase d'état de tout le site, par ordre de gravité
+function overallState(devices, camera, pending) {
+  const list = Object.values(devices);
+  if (list.length === 0) {
+    return { tone: 'neutral', icon: '…', title: 'En attente des capteurs', text: "Aucun appareil n'a encore remonté d'état." };
+  }
+  const names = (pred) => list.filter(pred).map((d) => d.device_id).join(', ');
+  const live = (d) => !['stale', 'no_data'].includes(d.device_state);
+  const fire = names((d) => live(d) && d.status === 'feu');
+  if (fire) return { tone: 'critical', icon: '!', title: 'Feu détecté', text: `Sur ${fire}. Vérifiez sur place et acquittez l'alerte une fois traitée.` };
+  const gas = names((d) => live(d) && d.status === 'fuite_gaz');
+  if (gas) return { tone: 'serious', icon: '!', title: 'Fuite de gaz détectée', text: `Sur ${gas}.` };
+  if (camera?.identity === 'unknown') {
+    return { tone: 'critical', icon: '!', title: 'Inconnu devant la caméra', text: "Une personne non autorisée est visible en ce moment." };
+  }
+  const offline = names((d) => !live(d));
+  if (offline) return { tone: 'serious', icon: '!', title: 'Capteur hors ligne', text: `${offline} n'envoie plus de mesures : ses dernières alertes ne sont plus confirmées.` };
+  const presence = names((d) => d.status === 'presence');
+  if (presence) return { tone: 'warning', icon: '●', title: 'Présence détectée', text: `Sur ${presence}.` };
+  if (list.every((d) => d.device_state === 'warming_up')) {
+    return { tone: 'neutral', icon: '…', title: 'Préchauffage des capteurs', text: 'Les détections démarrent dans quelques instants.' };
+  }
+  return { tone: 'good', icon: '✓', title: 'Tout est calme', text: pending > 0
+    ? `Aucune détection en cours. ${pending} alerte${pending > 1 ? 's' : ''} passée${pending > 1 ? 's' : ''} à traiter.`
+    : 'Aucune alerte, tous les capteurs répondent.' };
+}
+
 export default function Overview() {
-  const { token } = useAuth();
-  const { devices, history, alerts, stats, connected } = useLive();
-  const [error, setError] = useState('');
+  const { devices, history, alerts, stats, connected, camera } = useLive();
   const deviceIds = Object.keys(devices).sort();
   const [selected, setSelected] = useState('');
   const current = selected && devices[selected] ? selected : deviceIds[0];
 
-  // Filet si le WebSocket n'est pas encore connecté : état initial en REST
-  const [fallback, setFallback] = useState({});
-  useEffect(() => {
-    api.getDevices(token).then((r) => setFallback(r.data)).catch((e) => setError(e.message));
-  }, [token]);
-  const shownDevices = Object.keys(devices).length ? devices : fallback;
+  const shownDevices = devices;
 
   const series = useMemo(() => history[current] || [], [history, current]);
   const chart = (key) => series.map((p) => ({ t: p.t, v: p[key] }));
-  const active = Object.values(shownDevices).filter((d) => d.status && d.status !== 'aucune').length;
+  const state = overallState(shownDevices, camera, stats?.unacknowledged || 0);
   const online = Object.values(shownDevices).filter((d) => d.device_state === 'ok').length;
 
   return (
     <div className="page">
-      <header className="page-head">
-        <div>
-          <h1>Supervision</h1>
-          <p className="muted">État du boîtier, mesures et caméra en temps réel</p>
-        </div>
-        {!connected && <Badge tone="warning" icon="○">Reconnexion au temps réel…</Badge>}
-      </header>
-      <ErrorText>{error}</ErrorText>
+      {!connected && <div><Badge tone="warning" icon="○">Connexion au serveur perdue, nouvelle tentative…</Badge></div>}
 
-      <div className="stats">
-        <StatTile label="Alertes non acquittées" value={stats?.unacknowledged} tone={stats?.unacknowledged ? 'critical' : undefined}
-                  hint={stats ? `${stats.total} au total` : undefined} />
-        <StatTile label="Critiques" value={stats?.bySeverity?.critical} />
-        <StatTile label="Appareils en ligne" value={`${online} / ${Object.keys(shownDevices).length}`} />
-        <StatTile label="Détections actives" value={active} tone={active ? 'serious' : undefined} />
-      </div>
+      <section className={`hero is-${state.tone}`} aria-live="polite">
+        <span className="hero-eyebrow">Supervision</span>
+        <h1><span className="hero-dot" aria-hidden="true">{state.icon}</span>{state.title}</h1>
+        <p>{state.text}</p>
+        <dl className="hero-stats">
+          <div><dd><Link to="/alerts">{stats?.unacknowledged ?? '—'}</Link></dd><dt>alertes à traiter</dt></div>
+          <div><dd>{online} / {Object.keys(shownDevices).length}</dd><dt>appareils en ligne</dt></div>
+          <div><dd>{stats?.bySeverity?.critical ?? '—'}</dd><dt>alertes critiques</dt></div>
+        </dl>
+      </section>
 
       <div className="grid-2">
-        <Card title="Caméra">
+        <Card className="flush">
           <CameraFeed />
         </Card>
         <Card title="Appareils">

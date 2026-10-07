@@ -15,7 +15,6 @@ export const PERMISSIONS = {
   faces: ADMINS,            // visages autorisés
   users: ADMINS,            // comptes (admin : comptes « user » seulement)
   system: ADMINS,           // santé du service de détection
-  training: ['superadmin'], // sessions d'enregistrement et rechargement du modèle
   manageAdmins: ['superadmin']
 };
 

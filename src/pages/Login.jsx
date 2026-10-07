@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import Logo from '../components/Logo.jsx';
 
 // Connexion par mot de passe, ou par reconnaissance faciale : la personne se place seule
 // devant la caméra Sentinel, le backend vérifie que le visage vu est celui du compte.
@@ -32,7 +33,7 @@ export default function Login() {
     <div className="login-page">
       <form className="card login" onSubmit={submit}>
         <div className="brand big">
-          <span className="brand-mark" aria-hidden="true">◆</span>
+          <Logo size={72} />
           <span>Sentinel-X</span>
         </div>
         <p className="muted">Centre de commandement</p>

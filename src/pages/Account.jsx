@@ -9,7 +9,6 @@ const PERMISSION_LABELS = {
   faces: 'Gérer les visages autorisés',
   users: 'Gérer les comptes',
   system: 'Consulter le service IoT',
-  training: "Entraîner l'IA et recharger le modèle",
   manageAdmins: 'Gérer les admins'
 };
 

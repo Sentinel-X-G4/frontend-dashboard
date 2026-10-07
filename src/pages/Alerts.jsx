@@ -7,10 +7,12 @@ import { Badge, Card, ErrorText, SEVERITIES, SEVERITY, SeverityBadge, formatDate
 
 const LIMIT = 25;
 
-// Historique complet (REST, filtres + pagination), rafraîchi à chaque alerte temps réel
+// Historique complet (REST, filtres + pagination), rechargé quand une alerte apparaît ou change d'état
 export default function Alerts() {
   const { token, can } = useAuth();
-  const { alerts: liveAlerts } = useLive();
+  const { alerts: liveAlerts, refresh } = useLive();
+  // Empreinte stable des alertes reçues : change seulement si une alerte arrive ou est acquittée
+  const liveKey = liveAlerts.map((a) => `${a.id}:${a.acknowledged}`).join();
   const [filters, setFilters] = useState({ severity: '', search: '', status: '' });
   const [page, setPage] = useState(1);
   const [result, setResult] = useState({ data: [], pagination: { total: 0, totalPages: 0 } });
@@ -24,11 +26,11 @@ export default function Alerts() {
       .catch((e) => setError(e.message));
   }, [token, filters.severity, filters.search, page]);
 
-  // Recharge sur changement de filtre et quand le temps réel apporte une alerte ou un acquittement
+  // Recharge sur changement de filtre et quand une alerte arrive ou est acquittée
   useEffect(() => {
     const timer = setTimeout(load, 250);
     return () => clearTimeout(timer);
-  }, [load, liveAlerts]);
+  }, [load, liveKey]);
 
   const set = (key) => (e) => { setFilters({ ...filters, [key]: e.target.value }); setPage(1); };
 
@@ -37,6 +39,7 @@ export default function Alerts() {
     try {
       await api.acknowledgeAlert(token, id);
       load();
+      refresh();
     } catch (e) {
       setError(e.message);
     } finally {

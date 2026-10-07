@@ -25,12 +25,12 @@ export default function CameraFeed() {
           </div>
         )}
         <span className={`live-pill ${live ? 'on' : ''}`}>{live ? '● EN DIRECT' : '○ HORS LIGNE'}</span>
-      </div>
-      <div className="camera-meta">
-        {identity
-          ? <Badge tone={identity.tone} icon={identity.icon}>{identity.label}</Badge>
-          : <Badge>Reconnaissance faciale indisponible</Badge>}
-        {camera?.names?.length > 0 && <span className="muted">{camera.names.join(', ')}</span>}
+        <div className="camera-id">
+          {identity
+            ? <Badge tone={identity.tone} icon={identity.icon}>{identity.label}</Badge>
+            : <Badge>Reconnaissance faciale indisponible</Badge>}
+          {camera?.names?.length > 0 && <span className="names">{camera.names.join(', ')}</span>}
+        </div>
       </div>
     </div>
   );

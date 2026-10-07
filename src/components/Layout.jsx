@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useLive } from '../live.jsx';
 import { RoleBadge } from './ui.jsx';
+import Logo from './Logo.jsx';
 
 // Menu filtré par rôle : chaque entrée n'apparaît que si le rôle a le droit correspondant
 const NAV = [
@@ -10,7 +11,6 @@ const NAV = [
   { to: '/users', label: 'Comptes', icon: '◍', permission: 'users' },
   { to: '/faces', label: 'Visages autorisés', icon: '☺', permission: 'faces' },
   { to: '/system', label: 'Service IoT', icon: '⚙', permission: 'system' },
-  { to: '/training', label: "Entraînement IA", icon: '◈', permission: 'training' },
   { to: '/account', label: 'Mon compte', icon: '◐' }
 ];
 
@@ -23,7 +23,7 @@ export default function Layout() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">◆</span>
+          <Logo size={30} />
           <span>Sentinel-X</span>
         </div>
         <nav>
