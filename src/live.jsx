@@ -5,12 +5,12 @@ import * as api from './api.js';
 // Données « en direct » partagées par toutes les pages, par interrogation régulière de l'API REST
 // (le backend n'a pas de WebSocket) :
 //   alertes, appareils, stats, identité caméra  une seule requête GET /overview toutes les 0,5 s
-//   image webcam                                une image toutes les 0,5 s, seulement quand la caméra est affichée
-// Budget : 4 requêtes/s par onglet, pour 10/s autorisées par IP (nginx et API).
+//   image webcam                                un flux MJPEG continu, seulement quand la caméra est affichée
+// Budget : 2 requêtes/s par onglet (+ 1 flux ouvert), pour 10/s autorisées par IP (nginx et API).
 // Les courbes sont construites à partir des états d'appareils reçus (30 min gardées en mémoire).
 const LiveContext = createContext(null);
 const DATA_EVERY_MS = 500;
-const FRAME_EVERY_MS = 500;
+const STREAM_RETRY_MS = 1000;
 const HISTORY_MS = 30 * 60 * 1000;
 
 const point = (device) => ({
@@ -77,33 +77,72 @@ export function LiveProvider({ children }) {
 
 export const useLive = () => useContext(LiveContext);
 
+const HEADER_END = new Uint8Array([13, 10, 13, 10]); // \r\n\r\n
+const indexOf = (buf, needle, from = 0) => {
+  outer: for (let i = from; i <= buf.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) if (buf[i + j] !== needle[j]) continue outer;
+    return i;
+  }
+  return -1;
+};
+
+// Découpe un flux multipart/x-mixed-replace (MJPEG du détecteur, une partie = en-têtes avec
+// Content-Length + JPEG) et appelle onFrame(Blob) pour chaque image, jusqu'à la fin du flux
+async function readMjpeg(body, onFrame) {
+  const reader = body.getReader();
+  let buf = new Uint8Array(0);
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    const merged = new Uint8Array(buf.length + value.length);
+    merged.set(buf);
+    merged.set(value, buf.length);
+    buf = merged;
+    for (;;) {
+      const headEnd = indexOf(buf, HEADER_END);
+      if (headEnd < 0) break;
+      const headers = new TextDecoder().decode(buf.subarray(0, headEnd));
+      const length = Number(/content-length:\s*(\d+)/i.exec(headers)?.[1]);
+      if (!length) { buf = buf.slice(headEnd + 4); continue; }
+      const start = headEnd + 4;
+      if (buf.length < start + length) break;
+      onFrame(new Blob([buf.slice(start, start + length)], { type: 'image/jpeg' }));
+      buf = buf.slice(start + length);
+    }
+  }
+}
+
 // Image en direct de la webcam (URL blob), null tant qu'aucune image n'est arrivée.
-// Le backend n'est interrogé que pendant que le composant est affiché.
+// Un seul flux MJPEG continu, ouvert seulement pendant que le composant est affiché ;
+// reconnexion automatique si le flux tombe.
 export function useCameraFeed() {
   const { token } = useAuth();
   const [frame, setFrame] = useState(null);
   const [lastFrameAt, setLastFrameAt] = useState(0);
 
   useEffect(() => {
-    let stopped = false;
+    const abort = new AbortController();
     let url = null;
     let timer;
-    const tick = async () => {
-      try {
-        const next = await api.getCameraSnapshot(token);
-        if (stopped) { URL.revokeObjectURL(next); return; }
-        if (url) URL.revokeObjectURL(url);
-        url = next;
-        setFrame(next);
-        setLastFrameAt(Date.now());
-      } catch {
-        // pas d'image pour le moment : on réessaie
-      }
-      if (!stopped) timer = setTimeout(tick, FRAME_EVERY_MS);
+    const show = (blob) => {
+      if (abort.signal.aborted) return;
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(blob);
+      setFrame(url);
+      setLastFrameAt(Date.now());
     };
-    tick();
+    const connect = async () => {
+      try {
+        const res = await api.openCameraStream(token, abort.signal);
+        await readMjpeg(res.body, show);
+      } catch {
+        // flux indisponible ou coupé : on réessaie
+      }
+      if (!abort.signal.aborted) timer = setTimeout(connect, STREAM_RETRY_MS);
+    };
+    connect();
     return () => {
-      stopped = true;
+      abort.abort();
       clearTimeout(timer);
       if (url) URL.revokeObjectURL(url);
       setFrame(null);

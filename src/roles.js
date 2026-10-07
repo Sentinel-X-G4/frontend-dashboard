@@ -11,6 +11,8 @@ export const ROLE_LABELS = {
 const ADMINS = ['admin', 'superadmin'];
 
 export const PERMISSIONS = {
+  raiseAlert: ROLES,        // donner l'alerte sur un appareil (buzzer + LED rouge)
+  stopAlert: ADMINS,        // arrêter l'alerte d'un appareil
   acknowledge: ADMINS,      // acquitter une alerte
   faces: ADMINS,            // visages autorisés
   users: ADMINS,            // comptes (admin : comptes « user » seulement)

@@ -163,6 +163,8 @@ label.check { flex-direction: row; align-items: center; gap: .5rem; }
 .device-alerts li.active .bar > span { background: var(--series); }
 .device-alerts .num { text-align: right; }
 .device footer { font-size: .8rem; }
+.device-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.device-actions .error { flex-basis: 100%; font-size: .85rem; }
 
 /* Caméra */
 .camera { display: flex; flex-direction: column; gap: .7rem; }
@@ -281,4 +283,34 @@ td.empty, .empty { color: var(--muted); text-align: center; padding: 1.2rem; }
   .feed li > :nth-child(3), .feed li > :nth-child(4) { grid-column: 2; font-size: .8rem; }
   .props { grid-template-columns: 1fr; gap: .2rem; }
   .props dd { margin-bottom: .6rem; }
+}
+
+/* Animation d'alerte : alerte critique ou haute non acquittée (Layout.jsx) */
+.shell.alarming::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  box-shadow: inset 0 0 0 4px var(--critical), inset 0 0 80px color-mix(in srgb, var(--critical) 45%, transparent);
+  animation: alarm-pulse 1.2s ease-in-out infinite;
+}
+.alarm-banner {
+  display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
+  margin-bottom: 1.4rem; padding: .8rem 1.1rem; border-radius: 14px;
+  background: var(--critical); color: #fff; text-decoration: none;
+  animation: alarm-blink 1.2s ease-in-out infinite;
+}
+.alarm-icon { font-size: 1.4rem; line-height: 1; animation: alarm-shake 1.2s ease-in-out infinite; }
+.alarm-cta { margin-left: auto; font-weight: 600; white-space: nowrap; }
+.hero.is-critical .hero-dot, .hero.is-serious .hero-dot { animation: alarm-ring 1.2s ease-out infinite; }
+
+@keyframes alarm-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes alarm-blink { 50% { filter: brightness(.78); } }
+@keyframes alarm-shake { 0%, 60%, 100% { transform: rotate(0); } 15% { transform: rotate(-14deg); } 30% { transform: rotate(14deg); } 45% { transform: rotate(-8deg); } }
+@keyframes alarm-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--critical) 70%, transparent); }
+  100% { box-shadow: 0 0 0 .6em transparent; }
+}
+
+/* Mouvement réduit : signal fixe, sans clignotement */
+@media (prefers-reduced-motion: reduce) {
+  .shell.alarming::after, .alarm-banner, .alarm-icon, .hero-dot { animation: none; }
+  .shell.alarming::after { opacity: .8; }
 }

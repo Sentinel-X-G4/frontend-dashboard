@@ -53,6 +53,13 @@ export async function getCameraSnapshot(token) {
   if (!res.ok) throw new Error(`Erreur ${res.status}`);
   return URL.createObjectURL(await res.blob());
 }
+// Flux continu de la webcam (MJPEG) : réponse fetch dont le corps se lit image par image
+// (<img src> ne peut pas envoyer le Bearer). `signal` ferme le flux.
+export async function openCameraStream(token, signal) {
+  const res = await fetch(`${BASE}/camera/stream`, { headers: { Authorization: `Bearer ${token}` }, signal });
+  if (!res.ok || !res.body) throw new Error(`Erreur ${res.status}`);
+  return res;
+}
 
 // --- Admin et superadmin ---
 export const acknowledgeAlert = (token, id) => request(`/alerts/${id}/acknowledge`, { method: 'PATCH', token, body: {} });

@@ -1,44 +1,53 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLive } from '../live.jsx';
+import { useAuth } from '../auth.jsx';
+import { can } from '../roles.js';
+import * as api from '../api.js';
 import CameraFeed from '../components/CameraFeed.jsx';
 import LineChart from '../components/LineChart.jsx';
 import {
-  Badge, Card, DEVICE_STATE, DEVICE_STATUS, Empty, SeverityBadge, timeAgo
+  Badge, Card, Empty, ErrorText, SeverityBadge, timeAgo
 } from '../components/ui.jsx';
 
-const ALERT_LABELS = { feu: 'Feu', fuite_gaz: 'Gaz', presence: 'Présence' };
+// Alarme de l'ESP (buzzer + LED rouge), via le service IoT. Tout le monde peut la donner, seuls
+// les admins l'arrêtent. Son état n'est pas en base : il n'est connu qu'au retour d'une commande.
+function AlarmControls({ deviceId }) {
+  const { token, user } = useAuth();
+  const { refresh } = useLive();
+  const [alarm, setAlarm] = useState(null); // 'on' | 'off' | null (inconnu)
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-// État d'un appareil. no_data / stale : alertes figées, affichées comme non confirmées
-function DeviceCard({ device }) {
-  const status = DEVICE_STATUS[device.status] || { label: device.status, tone: 'neutral' };
-  const state = DEVICE_STATE[device.device_state] || { label: device.device_state, tone: 'neutral' };
-  const unconfirmed = ['no_data', 'stale'].includes(device.device_state);
+  const send = async (state) => {
+    if (state === 'on' && !window.confirm(`Donner l'alerte sur ${deviceId} ? Le buzzer va sonner et la LED passer au rouge.`)) return;
+    setBusy(true);
+    setError('');
+    try {
+      const { data } = await api.setDeviceAlert(token, deviceId, state);
+      setAlarm(data.state?.alert ?? state);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  };
+
   return (
-    <div className={`device tone-border-${unconfirmed ? 'neutral' : status.tone}`}>
-      <header>
-        <strong>{device.device_id}</strong>
-        <Badge tone={state.tone}>{state.label}</Badge>
-      </header>
-      <div className="device-status">
-        <Badge tone={unconfirmed ? 'neutral' : status.tone} icon={status.icon}>{status.label}</Badge>
-        {unconfirmed && device.status !== 'aucune' && <span className="muted">dernière alerte connue, non confirmée</span>}
-      </div>
-      <ul className="device-alerts">
-        {(device.alerts || []).map((a) => (
-          <li key={a.type} className={a.active ? 'active' : ''}>
-            <span>{ALERT_LABELS[a.type] || a.type}</span>
-            <span className="bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((a.confidence ?? 0) * 100)}
-                  aria-label={`Confiance ${ALERT_LABELS[a.type] || a.type}`}>
-              <span style={{ width: `${Math.round((a.confidence ?? 0) * 100)}%` }} />
-            </span>
-            <span className="num">{Math.round((a.confidence ?? 0) * 100)} %</span>
-          </li>
-        ))}
-      </ul>
-      <footer className="muted">
-        Vu {timeAgo(device.timestamp)} · modèle {device.model_version}
-      </footer>
+    <div className="device-actions">
+      {alarm && (
+        <Badge tone={alarm === 'on' ? 'critical' : 'good'} icon={alarm === 'on' ? '🔔' : '✓'}>
+          {alarm === 'on' ? 'Alarme en cours' : 'Alarme arrêtée'}
+        </Badge>
+      )}
+      {can(user, 'raiseAlert') && (
+        <button type="button" className="danger" disabled={busy} onClick={() => send('on')}>Donner l'alerte</button>
+      )}
+      {can(user, 'stopAlert') && (
+        <button type="button" className="ghost" disabled={busy} onClick={() => send('off')}>Arrêter l'alerte</button>
+      )}
+      <ErrorText>{error}</ErrorText>
     </div>
   );
 }
@@ -102,10 +111,15 @@ export default function Overview() {
         <Card className="flush">
           <CameraFeed />
         </Card>
-        <Card title="Appareils">
-          {Object.keys(shownDevices).length === 0
+        <Card title="Alarme">
+          {deviceIds.length === 0
             ? <Empty>Aucun appareil n'a encore remonté d'état.</Empty>
-            : <div className="devices">{Object.values(shownDevices).map((d) => <DeviceCard key={d.device_id} device={d} />)}</div>}
+            : (
+              <>
+                <p className="hint">Sur {current} : le buzzer sonne, la LED passe au rouge et l'écran affiche « ALERT ».</p>
+                <AlarmControls key={current} deviceId={current} />
+              </>
+            )}
         </Card>
       </div>
 
@@ -115,7 +129,7 @@ export default function Overview() {
                 {deviceIds.map((id) => <option key={id}>{id}</option>)}
               </select>
             )}>
-        <p className="hint">Depuis l'ouverture de la page (30 min max), un point toutes les 10 s. Historique long : Grafana.</p>
+        <p className="hint">Depuis l'ouverture de la page (30 min max), un point par seconde. Historique long : Grafana.</p>
         <div className="charts">
           <LineChart title="Température" unit="°C" points={chart('temp')} />
           <LineChart title="Humidité" unit="%" points={chart('hum')} />

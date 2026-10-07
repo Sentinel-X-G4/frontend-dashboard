@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useLive } from '../live.jsx';
 import { RoleBadge } from './ui.jsx';
@@ -16,11 +16,13 @@ const NAV = [
 
 export default function Layout() {
   const { user, logout, can } = useAuth();
-  const { connected, stats } = useLive();
+  const { connected, stats, alerts } = useLive();
   const unacked = stats?.unacknowledged || 0;
+  // Animation d'alerte (bandeau + halo) tant qu'une alerte critique ou haute n'est pas acquittée
+  const urgent = alerts.filter((a) => !a.acknowledged && ['critical', 'high'].includes(a.severity));
 
   return (
-    <div className="shell">
+    <div className={`shell ${urgent.length > 0 ? 'alarming' : ''}`}>
       <aside className="sidebar">
         <div className="brand">
           <Logo size={30} />
@@ -46,7 +48,19 @@ export default function Layout() {
           <button type="button" className="ghost" onClick={logout}>Déconnexion</button>
         </div>
       </aside>
-      <main className="content"><Outlet /></main>
+      <main className="content">
+        {urgent.length > 0 && (
+          <Link to="/alerts" className="alarm-banner" role="alert">
+            <span className="alarm-icon" aria-hidden="true">⚠</span>
+            <span>
+              <strong>{urgent[0].title}</strong>
+              {urgent.length > 1 && ` (+${urgent.length - 1} autre${urgent.length > 2 ? 's' : ''})`}
+            </span>
+            <span className="alarm-cta">Voir les alertes →</span>
+          </Link>
+        )}
+        <Outlet />
+      </main>
     </div>
   );
 }
