@@ -60,7 +60,14 @@ export const createUser = (token, user) => request('/users', { method: 'POST', t
 export const updateUser = (token, id, changes) => request(`/users/${id}`, { method: 'PATCH', token, body: changes });
 export const deleteUser = (token, id) => request(`/users/${id}`, { method: 'DELETE', token });
 
+<<<<<<< HEAD
 // Visages autorisés. Un visage nommé comme un compte sert à la connexion faciale de ce compte.
+=======
+// Caméra : reconnaissance faciale. identity = 'none' | 'authorized' | 'unknown'
+// (temps réel : événements WebSocket init_camera / camera_status)
+// Attention ces routes pointent vers le backend human-detection-ia et non le backend-api
+export const getCamera = (token) => request('/camera', { token });
+>>>>>>> f90ade4 (comment added)
 export const getFaces = (token) => request('/faces', { token });
 // Le visage est pris par le backend sur l'image courante de la caméra Sentinel
 export const addFace = (token, name) => request('/faces', { method: 'POST', token, body: { name } });
