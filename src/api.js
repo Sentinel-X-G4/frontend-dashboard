@@ -32,3 +32,18 @@ export const login = (username, password) =>
 // À créer côté backend (admin) : GET /users, POST /users {username,password,role}
 export const getUsers = (token) => request('/users', { token });
 export const createUser = (token, user) => request('/users', { method: 'POST', token, body: user });
+
+// Caméra : reconnaissance faciale. identity = 'none' | 'authorized' | 'unknown'
+// (temps réel : événements WebSocket init_camera / camera_status)
+export const getCamera = (token) => request('/camera', { token });
+export const getFaces = (token) => request('/faces', { token });
+// image : data URL ou base64 (JPEG/PNG) ; sans image, le visage est pris sur la caméra
+export const addFace = (token, name, image) =>
+  request('/faces', { method: 'POST', token, body: { name, ...(image && { image }) } });
+export const deleteFace = (token, id) => request(`/faces/${id}`, { method: 'DELETE', token });
+// Vignette : <img src> ne peut pas envoyer le Bearer, d'où un blob -> URL.createObjectURL
+export async function getFaceImage(token, id) {
+  const res = await fetch(`${BASE}/faces/${id}/image`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Erreur ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
