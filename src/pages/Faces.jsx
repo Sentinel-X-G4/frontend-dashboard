@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import * as api from '../api.js';
-import FaceCapture from '../components/FaceCapture.jsx';
-import { Card, Empty, ErrorText, Modal, formatDate } from '../components/ui.jsx';
+import { Card, Empty, ErrorText, formatDate } from '../components/ui.jsx';
 
 // Vignette chargée en fetch + Bearer (une <img src> ne peut pas s'authentifier)
 function Thumb({ id }) {
@@ -17,41 +17,12 @@ function Thumb({ id }) {
   return src ? <img src={src} alt="" /> : <div className="thumb-empty" aria-hidden="true">☺</div>;
 }
 
-function AddFace({ onDone }) {
-  const { token } = useAuth();
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      await api.addFace(token, name.trim());
-      onDone();
-    } catch (err) {
-      setError(err.message);
-      setBusy(false);
-    }
-  };
-  return (
-    <form className="form" onSubmit={submit}>
-      <label>Nom
-        <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={64} autoFocus />
-      </label>
-      <p className="hint">Utilisez l'identifiant d'un compte pour lui permettre la connexion faciale.</p>
-      <FaceCapture />
-      <ErrorText>{error}</ErrorText>
-      <div className="form-actions"><button type="submit" disabled={busy}>{busy ? 'Capture…' : 'Valider le visage'}</button></div>
-    </form>
-  );
-}
-
-// Personnes autorisées : reconnues par la caméra, elles ne déclenchent pas d'alerte « inconnu »
+// Personnes autorisées : reconnues par la caméra, elles ne déclenchent pas d'alerte « inconnu ».
+// Un visage s'ajoute uniquement depuis la page Comptes (lié à un compte) ; ici on consulte et on supprime.
 export default function Faces() {
   const { token } = useAuth();
   const [faces, setFaces] = useState([]);
   const [users, setUsers] = useState([]);
-  const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
 
   const refresh = useCallback(() => {
@@ -82,7 +53,7 @@ export default function Faces() {
           <h1>Visages autorisés</h1>
           <p className="muted">{people.length} personne{people.length > 1 ? 's' : ''} · {faces.length} photo{faces.length > 1 ? 's' : ''}</p>
         </div>
-        <button type="button" onClick={() => setAdding(true)}>+ Ajouter un visage</button>
+        <Link to="/users" className="link">Ajouter un visage depuis Comptes →</Link>
       </header>
       <ErrorText>{error}</ErrorText>
       {people.length === 0 && !error && <Card><Empty>Aucun visage enregistré.</Empty></Card>}
@@ -104,11 +75,6 @@ export default function Faces() {
           </Card>
         ))}
       </div>
-      {adding && (
-        <Modal title="Ajouter un visage" wide onClose={() => setAdding(false)}>
-          <AddFace onDone={() => { setAdding(false); refresh(); }} />
-        </Modal>
-      )}
     </div>
   );
 }

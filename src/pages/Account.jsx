@@ -5,6 +5,8 @@ import { PERMISSIONS } from '../roles.js';
 import { Card, ErrorText, RoleBadge } from '../components/ui.jsx';
 
 const PERMISSION_LABELS = {
+  raiseAlert: "Donner l'alerte",
+  stopAlert: "Arrêter l'alerte",
   acknowledge: 'Acquitter les alertes',
   faces: 'Gérer les visages autorisés',
   users: 'Gérer les comptes',

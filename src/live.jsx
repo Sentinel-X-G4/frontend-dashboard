@@ -90,11 +90,20 @@ const indexOf = (buf, needle, from = 0) => {
   return -1;
 };
 
+const sameBytes = (a, b) => {
+  if (!a || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+
 // Découpe un flux multipart/x-mixed-replace (MJPEG du détecteur, une partie = en-têtes avec
-// Content-Length + JPEG) et appelle onFrame(Blob) pour chaque image, jusqu'à la fin du flux
+// Content-Length + JPEG) et appelle onFrame(Blob) pour chaque nouvelle image, jusqu'à la fin du flux.
+// Webcam coupée, le détecteur renvoie sa dernière image toutes les 5 s : une vraie caméra ne
+// produisant jamais deux JPEG identiques (bruit du capteur), une copie exacte est ignorée.
 async function readMjpeg(body, onFrame) {
   const reader = body.getReader();
   let buf = new Uint8Array(0);
+  let previous = null;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) return;
@@ -110,8 +119,11 @@ async function readMjpeg(body, onFrame) {
       if (!length) { buf = buf.slice(headEnd + 4); continue; }
       const start = headEnd + 4;
       if (buf.length < start + length) break;
-      onFrame(new Blob([buf.slice(start, start + length)], { type: 'image/jpeg' }));
+      const jpeg = buf.slice(start, start + length);
       buf = buf.slice(start + length);
+      if (sameBytes(previous, jpeg)) continue;
+      previous = jpeg;
+      onFrame(new Blob([jpeg], { type: 'image/jpeg' }));
     }
   }
 }

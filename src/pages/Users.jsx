@@ -16,6 +16,7 @@ function CreateUser({ faces, accounts, onDone }) {
   const [form, setForm] = useState({ username: '', password: '', role: 'user' });
   const [faceOnly, setFaceOnly] = useState(false);
   const [withFace, setWithFace] = useState(null); // null : capture seulement si aucun visage lié
+  const [cameraLive, setCameraLive] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -101,11 +102,11 @@ function CreateUser({ faces, accounts, onDone }) {
                onChange={(e) => setWithFace(e.target.checked)} />
         {linkedPhotos > 0 ? 'Ajouter une photo maintenant' : 'Enregistrer son visage maintenant'}
       </label>
-      {capture && <FaceCapture />}
+      {capture && <FaceCapture onLive={setCameraLive} />}
 
       <ErrorText>{error}</ErrorText>
       <div className="form-actions">
-        <button type="submit" disabled={busy}>{busy ? 'Création…' : 'Créer le compte'}</button>
+        <button type="submit" disabled={busy || (capture && !cameraLive)}>{busy ? 'Création…' : 'Créer le compte'}</button>
       </div>
     </form>
   );
@@ -115,6 +116,7 @@ function AddFace({ account, onDone }) {
   const { token } = useAuth();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [cameraLive, setCameraLive] = useState(false);
   const submit = async () => {
     setBusy(true);
     try {
@@ -127,10 +129,10 @@ function AddFace({ account, onDone }) {
   };
   return (
     <div className="form">
-      <FaceCapture />
+      <FaceCapture onLive={setCameraLive} />
       <ErrorText>{error}</ErrorText>
       <div className="form-actions">
-        <button type="button" onClick={submit} disabled={busy}>{busy ? 'Capture…' : 'Valider le visage'}</button>
+        <button type="button" onClick={submit} disabled={busy || !cameraLive}>{busy ? 'Capture…' : 'Valider le visage'}</button>
       </div>
     </div>
   );

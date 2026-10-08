@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLive } from '../live.jsx';
 import { useAuth } from '../auth.jsx';
@@ -10,14 +10,38 @@ import {
   Badge, Card, Empty, ErrorText, SeverityBadge, timeAgo
 } from '../components/ui.jsx';
 
+// Un ESP qui décroche (stale, no_data) ou repart en préchauffage a pu redémarrer, alarme coupée
+const RESTART_STATES = ['stale', 'no_data', 'warming_up'];
+
 // Alarme de l'ESP (buzzer + LED rouge), via le service IoT. Tout le monde peut la donner, seuls
-// les admins l'arrêtent. Son état n'est pas en base : il n'est connu qu'au retour d'une commande.
+// les admins l'arrêtent. Son état n'est pas en base : il n'est connu qu'au retour d'une commande,
+// et redevient inconnu si l'appareil décroche ou redémarre.
+// Les admins acquittent aussi d'ici la dernière alerte non traitée (tous appareils confondus).
 function AlarmControls({ deviceId }) {
   const { token, user } = useAuth();
-  const { refresh } = useLive();
+  const { refresh, devices, alerts } = useLive();
   const [alarm, setAlarm] = useState(null); // 'on' | 'off' | null (inconnu)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const deviceState = devices[deviceId]?.device_state;
+  const lastPending = alerts.find((a) => !a.acknowledged);
+
+  useEffect(() => {
+    if (RESTART_STATES.includes(deviceState)) setAlarm(null);
+  }, [deviceState]);
+
+  const acknowledge = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await api.acknowledgeAlert(token, lastPending.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  };
 
   const send = async (state) => {
     if (state === 'on' && !window.confirm(`Donner l'alerte sur ${deviceId} ? Le buzzer va sonner et la LED passer au rouge.`)) return;
@@ -55,7 +79,16 @@ function AlarmControls({ deviceId }) {
             <span className="alarm-btn-icon" aria-hidden="true">■</span>
             <span className="alarm-btn-text">
               <strong>Arrêter l'alerte</strong>
-              <small>Retour au mode automatique</small>
+              <small>Coupe le buzzer, LED verte</small>
+            </span>
+          </button>
+        )}
+        {can(user, 'acknowledge') && (
+          <button type="button" className="alarm-btn ack" disabled={busy || !lastPending} onClick={acknowledge}>
+            <span className="alarm-btn-icon" aria-hidden="true">✓</span>
+            <span className="alarm-btn-text">
+              <strong>Acquitter la dernière alerte</strong>
+              <small>{lastPending ? `${lastPending.title} · ${timeAgo(lastPending.timestamp)}` : 'Aucune alerte à traiter'}</small>
             </span>
           </button>
         )}

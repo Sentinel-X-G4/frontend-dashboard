@@ -10,7 +10,7 @@ export default function CameraFeed() {
   return (
     <div className="camera">
       <div className="camera-view">
-        {frame ? <img src={frame} alt="Image en direct de la webcam Sentinel" /> : (
+        {frame ? <img src={frame} className={live ? '' : 'frozen'} alt="Dernière image de la webcam Sentinel" /> : (
           <div className="camera-empty">
             <span aria-hidden="true">◉</span>
             Aucune image : la capture webcam de l'hôte est-elle lancée ?
