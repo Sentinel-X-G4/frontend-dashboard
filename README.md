@@ -17,7 +17,7 @@ Il ne parle qu'au backend-api (`/api/v1`, REST uniquement), derrière le reverse
 Les droits affichés (`src/roles.js`) reflètent ceux du backend, qui reste seul juge.
 
 **Connexion** par mot de passe, ou par reconnaissance faciale : saisir son identifiant et se placer seul
-face à la caméra Sentinel (pas pour les superadmins). Le visage d'un compte est celui enregistré sous son
+face à la caméra Sentinel (tous les rôles ; un superadmin doit cependant garder un mot de passe). Le visage d'un compte est celui enregistré sous son
 identifiant, à la création du compte ou ensuite (bouton « + Visage » de la page Comptes).
 
 ## Structure
@@ -27,7 +27,7 @@ identifiant, à la création du compte ou ensuite (bouton « + Visage » de la p
 | `src/api.js` | appels REST (jeton en Bearer ; un 401 déconnecte) |
 | `src/auth.jsx` | session (sessionStorage), connexion mot de passe / visage, rôle relu au chargement |
 | `src/roles.js` | rôles et droits par fonction |
-| `src/live.jsx` | interrogation de l'API toutes les 0,5 s : une requête `/overview` (alertes, appareils, stats, identité caméra) et l'image webcam, historique des mesures |
+| `src/live.jsx` | interrogation de l'API toutes les 0,5 s : une requête `/overview` (alertes, appareils, stats, identité caméra) ; image webcam par un flux MJPEG continu (`useCameraFeed`) ; historique des mesures |
 | `src/components/` | mise en page, courbe SVG, webcam, capture de visage, briques communes |
 | `src/pages/` | une page par entrée du menu |
 
