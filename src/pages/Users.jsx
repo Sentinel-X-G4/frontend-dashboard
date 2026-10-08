@@ -6,49 +6,80 @@ import Table from '../components/Table.jsx';
 import FaceCapture from '../components/FaceCapture.jsx';
 import { Badge, Card, ErrorText, Modal, RoleBadge } from '../components/ui.jsx';
 
-function CreateUser({ onDone }) {
+const USERNAME = /^[\w.@-]{3,50}$/;
+
+// Un visage est lié au compte qui porte son nom : choisir un visage existant donne son nom au compte.
+// Sans mot de passe, le compte ne se connecte que par visage : il lui en faut un (existant ou capturé).
+function CreateUser({ faces, accounts, onDone }) {
   const { token, user } = useAuth();
   const roles = assignableRoles(user);
   const [form, setForm] = useState({ username: '', password: '', role: 'user' });
-  const [withFace, setWithFace] = useState(true);
+  const [faceOnly, setFaceOnly] = useState(false);
+  const [withFace, setWithFace] = useState(null); // null : capture seulement si aucun visage lié
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+
+  // Visages enregistrés sans compte, dont le nom peut servir d'identifiant
+  const freeFaces = [...new Set((faces || []).map((f) => f.name))]
+    .filter((name) => USERNAME.test(name) && !accounts.has(name)).sort();
+  const linkedPhotos = (faces || []).filter((f) => f.name === form.username).length;
+  const passwordless = faceOnly && form.role !== 'superadmin';
+  const capture = (passwordless && linkedPhotos === 0) || (withFace ?? linkedPhotos === 0);
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     setError('');
+    let created;
     try {
-      await api.createUser(token, form);
+      const { password, ...account } = form;
+      created = (await api.createUser(token, passwordless ? account : { ...account, password })).data;
     } catch (err) {
       setBusy(false);
       return setError(err.message);
     }
-    // Compte créé : un échec du visage n'annule pas le compte, il pourra être ajouté ensuite
     let warning = '';
-    if (withFace) {
+    if (capture) {
       try {
         await api.addFace(token, form.username);
       } catch (err) {
+        // Sans mot de passe ni visage, le compte serait inutilisable : on l'annule
+        if (passwordless && linkedPhotos === 0) {
+          await api.deleteUser(token, created.id).catch(() => {});
+          setBusy(false);
+          return setError(`Visage non enregistré, compte annulé : ${err.message}`);
+        }
         warning = `Compte créé, mais visage non enregistré : ${err.message}`;
       }
     }
     setBusy(false);
-    onDone(warning || `Compte ${form.username} créé${withFace ? ' avec reconnaissance faciale' : ''}`, !warning);
+    const face = capture || linkedPhotos > 0 ? ' avec reconnaissance faciale' : '';
+    onDone(warning || `Compte ${form.username} créé${face}${passwordless ? ', sans mot de passe' : ''}`, !warning);
   };
 
   return (
     <form className="form" onSubmit={submit}>
+      {freeFaces.length > 0 && (
+        <label>Lier à un visage déjà enregistré
+          <select value={freeFaces.includes(form.username) ? form.username : ''}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}>
+            <option value="">Aucun (nouveau visage)</option>
+            {freeFaces.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+      )}
       <div className="form-row">
         <label>Identifiant
           <input value={form.username} onChange={set('username')} required minLength={3} maxLength={50}
                  pattern="[\w.@\-]{3,50}" title="3 à 50 caractères : lettres, chiffres, . _ @ -" autoFocus />
         </label>
-        <label>Mot de passe
-          <input type="password" value={form.password} onChange={set('password')} required minLength={8} maxLength={200}
-                 autoComplete="new-password" />
-        </label>
+        {!passwordless && (
+          <label>Mot de passe
+            <input type="password" value={form.password} onChange={set('password')} required minLength={8} maxLength={200}
+                   autoComplete="new-password" />
+          </label>
+        )}
         <label>Rôle
           <select value={form.role} onChange={set('role')} disabled={roles.length === 1}>
             {roles.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
@@ -57,10 +88,20 @@ function CreateUser({ onDone }) {
       </div>
 
       <label className="check">
-        <input type="checkbox" checked={withFace} onChange={(e) => setWithFace(e.target.checked)} />
-        Enregistrer son visage (connexion par reconnaissance faciale{form.role === 'superadmin' ? ', non utilisable par un superadmin' : ''})
+        <input type="checkbox" checked={passwordless} disabled={form.role === 'superadmin'}
+               onChange={(e) => setFaceOnly(e.target.checked)} />
+        Sans mot de passe : connexion par reconnaissance faciale uniquement
+        {form.role === 'superadmin' && ' (impossible pour un super admin)'}
       </label>
-      {withFace && <FaceCapture />}
+      {linkedPhotos > 0 && (
+        <p className="hint">{linkedPhotos} photo{linkedPhotos > 1 ? 's' : ''} déjà enregistrée{linkedPhotos > 1 ? 's' : ''} sous ce nom : liée{linkedPhotos > 1 ? 's' : ''} au compte.</p>
+      )}
+      <label className="check">
+        <input type="checkbox" checked={capture} disabled={passwordless && linkedPhotos === 0}
+               onChange={(e) => setWithFace(e.target.checked)} />
+        {linkedPhotos > 0 ? 'Ajouter une photo maintenant' : 'Enregistrer son visage maintenant'}
+      </label>
+      {capture && <FaceCapture />}
 
       <ErrorText>{error}</ErrorText>
       <div className="form-actions">
@@ -167,7 +208,10 @@ export default function Users() {
 
   const columns = [
     { key: 'username', label: 'Identifiant', render: (u) => (
-      <strong>{u.username}{u.id === user.id && <span className="muted"> (vous)</span>}</strong>
+      <strong>
+        {u.username}{u.id === user.id && <span className="muted"> (vous)</span>}
+        {!u.hasPassword && <span className="muted small"> · sans mot de passe</span>}
+      </strong>
     ) },
     { key: 'role', label: 'Rôle', render: (u) => (
       user.role === 'superadmin' && canManage(user, u) ? (
@@ -188,7 +232,9 @@ export default function Users() {
         )}
         {canManage(user, u) && (
           <>
-            <button type="button" className="ghost" onClick={() => setModal({ type: 'password', account: u })}>Mot de passe</button>
+            <button type="button" className="ghost" onClick={() => setModal({ type: 'password', account: u })}>
+              {u.hasPassword ? 'Mot de passe' : 'Définir un mot de passe'}
+            </button>
             <button type="button" className="ghost danger" onClick={() => remove(u)}>Supprimer</button>
           </>
         )}
@@ -216,7 +262,9 @@ export default function Users() {
       </Card>
 
       {modal?.type === 'create' && (
-        <Modal title="Nouveau compte" wide onClose={() => setModal(null)}><CreateUser onDone={done} /></Modal>
+        <Modal title="Nouveau compte" wide onClose={() => setModal(null)}>
+          <CreateUser faces={faces} accounts={new Set(users.map((u) => u.username))} onDone={done} />
+        </Modal>
       )}
       {modal?.type === 'face' && (
         <Modal title={`Visage de ${modal.account.username}`} wide onClose={() => setModal(null)}>

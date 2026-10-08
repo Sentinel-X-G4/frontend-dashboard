@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth.jsx';
 import * as api from '../api.js';
-import { PERMISSIONS, ROLE_LABELS } from '../roles.js';
+import { PERMISSIONS } from '../roles.js';
 import { Card, ErrorText, RoleBadge } from '../components/ui.jsx';
 
 const PERMISSION_LABELS = {
@@ -13,7 +13,7 @@ const PERMISSION_LABELS = {
 };
 
 export default function Account() {
-  const { token, user } = useAuth();
+  const { token, user, refreshUser } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [message, setMessage] = useState(null);
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -24,7 +24,8 @@ export default function Account() {
     try {
       await api.changePassword(token, form.currentPassword, form.newPassword);
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
-      setMessage({ ok: true, text: 'Mot de passe modifié' });
+      setMessage({ ok: true, text: user.hasPassword ? 'Mot de passe modifié' : 'Mot de passe défini' });
+      refreshUser();
     } catch (err) {
       setMessage({ ok: false, text: err.message });
     }
@@ -47,17 +48,18 @@ export default function Account() {
           </dd>
           <dt>Connexion faciale</dt>
           <dd className="muted">
-            {user.role === 'superadmin'
-              ? `Désactivée pour le rôle ${ROLE_LABELS.superadmin} (mot de passe obligatoire).`
-              : 'Possible si un visage est enregistré sous votre identifiant (page Comptes, par un admin).'}
+            Possible si un visage est enregistré sous votre identifiant (page Comptes).
+            {!user.hasPassword && " Votre compte n'a pas de mot de passe : c'est votre seul moyen de connexion."}
           </dd>
         </dl>
       </Card>
-      <Card title="Changer de mot de passe">
+      <Card title={user.hasPassword ? 'Changer de mot de passe' : 'Définir un mot de passe'}>
         <form className="form" onSubmit={submit}>
-          <label>Mot de passe actuel
-            <input type="password" value={form.currentPassword} onChange={set('currentPassword')} required autoComplete="current-password" />
-          </label>
+          {user.hasPassword && (
+            <label>Mot de passe actuel
+              <input type="password" value={form.currentPassword} onChange={set('currentPassword')} required autoComplete="current-password" />
+            </label>
+          )}
           <label>Nouveau mot de passe
             <input type="password" value={form.newPassword} onChange={set('newPassword')} required minLength={8} maxLength={200} autoComplete="new-password" />
           </label>

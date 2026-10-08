@@ -28,9 +28,10 @@ export function AuthProvider({ children }) {
   // Tout 401 sur une route authentifiée (jeton expiré, compte supprimé) déconnecte
   useEffect(() => api.setUnauthorizedHandler(logout), [logout]);
 
-  // Rôle relu au chargement : un changement de rôle fait par un admin est pris en compte
+  // Compte relu au chargement (un changement de rôle fait par un admin est pris en compte),
+  // et après un changement du compte lui-même (refreshUser)
   const token = session?.token;
-  useEffect(() => {
+  const refreshUser = useCallback(() => {
     if (!token) return;
     api.getMe(token)
       .then(({ data }) => setSession((prev) => {
@@ -41,10 +42,11 @@ export function AuthProvider({ children }) {
       }))
       .catch(() => {});
   }, [token]);
+  useEffect(refreshUser, [refreshUser]);
 
   const user = session?.user;
   return (
-    <AuthContext.Provider value={{ token, user, login, faceLogin, logout, can: (permission) => canDo(user, permission) }}>
+    <AuthContext.Provider value={{ token, user, login, faceLogin, logout, refreshUser, can: (permission) => canDo(user, permission) }}>
       {children}
     </AuthContext.Provider>
   );
