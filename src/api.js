@@ -55,6 +55,9 @@ export async function openCameraStream(token, signal) {
 // --- Admin et superadmin ---
 export const acknowledgeAlert = (token, id) => request(`/alerts/${id}/acknowledge`, { method: 'PATCH', token, body: {} });
 
+// Superadmin : suppression d'une alerte
+export const deleteAlert = (token, id) => request(`/alerts/${id}`, { method: 'DELETE', token });
+
 export const getUsers = (token) => request('/users', { token });
 export const createUser = (token, user) => request('/users', { method: 'POST', token, body: user });
 // changes : { role?, password? }

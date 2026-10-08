@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useLive } from '../live.jsx';
 import { RoleBadge } from './ui.jsx';
@@ -20,10 +21,37 @@ export default function Layout() {
   const unacked = stats?.unacknowledged || 0;
   // Animation d'alerte (bandeau + halo) tant qu'une alerte critique ou haute n'est pas acquittée
   const urgent = alerts.filter((a) => !a.acknowledged && ['critical', 'high'].includes(a.severity));
+  // Mobile : la barre latérale devient un tiroir ouvert par le bouton menu, refermé à chaque navigation
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    document.body.classList.add('no-scroll');
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.classList.remove('no-scroll');
+    };
+  }, [menuOpen]);
 
   return (
-    <div className={`shell ${urgent.length > 0 ? 'alarming' : ''}`}>
-      <aside className="sidebar">
+    <div className={`shell ${urgent.length > 0 ? 'alarming' : ''} ${menuOpen ? 'menu-open' : ''}`}>
+      <header className="topbar">
+        <button type="button" className="menu-toggle" onClick={() => setMenuOpen(true)} aria-label="Ouvrir le menu" aria-expanded={menuOpen} aria-controls="sidebar">
+          <span aria-hidden="true">☰</span>
+          {unacked > 0 && <span className="count" aria-label={`${unacked} alertes non acquittées`}>{unacked}</span>}
+        </button>
+        <Link to="/" className="brand">
+          <Logo size={26} />
+          <span>Sentinel-X</span>
+        </Link>
+        <span className={`conn-dot ${connected ? 'on' : ''}`} title={connected ? 'Temps réel connecté' : 'Temps réel déconnecté'} />
+      </header>
+      <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+      <aside className="sidebar" id="sidebar">
+        <button type="button" className="menu-close" onClick={() => setMenuOpen(false)} aria-label="Fermer le menu">✕</button>
         <div className="brand">
           <Logo size={30} />
           <span>Sentinel-X</span>

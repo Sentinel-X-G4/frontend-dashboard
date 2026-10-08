@@ -14,6 +14,7 @@ export const PERMISSIONS = {
   raiseAlert: ROLES,        // donner l'alerte sur un appareil (buzzer + LED rouge)
   stopAlert: ADMINS,        // arrêter l'alerte d'un appareil
   acknowledge: ADMINS,      // acquitter une alerte
+  deleteAlerts: ['superadmin'], // supprimer une alerte
   faces: ADMINS,            // visages autorisés
   users: ADMINS,            // comptes (admin : comptes « user » seulement)
   system: ADMINS,           // santé du service de détection

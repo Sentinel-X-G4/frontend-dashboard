@@ -6,10 +6,12 @@ import * as api from './api.js';
 // (le backend n'a pas de WebSocket) :
 //   alertes, appareils, stats, identité caméra  une seule requête GET /overview toutes les 0,5 s
 //   image webcam                                un flux MJPEG continu, seulement quand la caméra est affichée
-// Budget : 2 requêtes/s par onglet (+ 1 flux ouvert), pour 10/s autorisées par IP (nginx et API).
+// Budget : 2 requêtes/s par onglet visible (+ 1 flux ouvert), pour 30/s autorisées par IP (nginx et
+// API). Onglet en arrière-plan : interrogation suspendue ; 429 (trop de requêtes) : pause de 5 s.
 // Les courbes sont construites à partir des états d'appareils reçus (30 min gardées en mémoire).
 const LiveContext = createContext(null);
 const DATA_EVERY_MS = 500;
+const RATE_LIMITED_PAUSE_MS = 5000;
 // Flux tombé après avoir livré des images : reconnexion immédiate ; échec à l'ouverture : on
 // réessaie après 1 s, ou 10 s sur la page de connexion (route publique : 120 ouvertures / 15 min par IP)
 const STREAM_RETRY_MS = 1000;
@@ -32,18 +34,31 @@ const appendPoint = (history, device) => {
   return { ...history, [device.device_id]: [...series, p].sort((a, b) => a.t - b.t) };
 };
 
-// Appelle load() tout de suite puis à intervalle régulier, sans chevauchement ; renvoie l'arrêt
+// Appelle load() tout de suite puis à intervalle régulier, sans chevauchement, tant que l'onglet
+// est visible. load() peut renvoyer un délai (ms) pour espacer le prochain appel.
 function usePolling(load, everyMs, enabled = true) {
   useEffect(() => {
     if (!enabled) return undefined;
     let stopped = false;
+    let running = false;
     let timer;
     const tick = async () => {
-      await load();
-      if (!stopped) timer = setTimeout(tick, everyMs);
+      clearTimeout(timer);
+      if (stopped || running || document.hidden) return;
+      running = true;
+      const delay = await load();
+      running = false;
+      if (!stopped) timer = setTimeout(tick, delay ?? everyMs);
     };
+    // Retour sur l'onglet : données rafraîchies immédiatement
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVisible);
     tick();
-    return () => { stopped = true; clearTimeout(timer); };
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [load, everyMs, enabled]);
 }
 
@@ -65,9 +80,12 @@ export function LiveProvider({ children }) {
       setStats(data.stats);
       setCamera(data.camera);
       setConnected(true);
-    } catch {
+    } catch (e) {
+      // Trop de requêtes : le serveur répond, on ralentit sans se dire hors ligne
+      if (e.status === 429) return RATE_LIMITED_PAUSE_MS;
       setConnected(false);
     }
+    return undefined;
   }, [token]);
 
   usePolling(loadData, DATA_EVERY_MS, Boolean(token));

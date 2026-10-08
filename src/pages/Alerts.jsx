@@ -19,6 +19,7 @@ export default function Alerts() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(null);
   const canAck = can('acknowledge');
+  const canDelete = can('deleteAlerts');
 
   const load = useCallback(() => {
     api.getAlerts(token, { severity: filters.severity, search: filters.search, page, limit: LIMIT })
@@ -47,6 +48,20 @@ export default function Alerts() {
     }
   };
 
+  const remove = async (alert) => {
+    if (!window.confirm(`Supprimer définitivement l'alerte « ${alert.title} » ?`)) return;
+    setBusy(alert.id);
+    try {
+      await api.deleteAlert(token, alert.id);
+      load();
+      refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   // Le statut (acquittée ou non) n'est pas filtré côté API : filtre sur la page affichée
   const rows = result.data.filter((a) => !filters.status || (filters.status === 'open' ? !a.acknowledged : a.acknowledged));
 
@@ -60,10 +75,17 @@ export default function Alerts() {
     { key: 'acknowledged', label: 'Statut', render: (a) => (a.acknowledged
       ? <Badge tone="good" icon="✓">Acquittée{a.acknowledgedBy ? ` par ${a.acknowledgedBy}` : ''}</Badge>
       : <Badge tone="critical" icon="!">À traiter</Badge>) },
-    ...(canAck ? [{
+    ...(canAck || canDelete ? [{
       key: 'actions', label: '', className: 'right',
-      render: (a) => !a.acknowledged && (
-        <button type="button" onClick={() => acknowledge(a.id)} disabled={busy === a.id}>Acquitter</button>
+      render: (a) => (
+        <div className="row-actions">
+          {canAck && !a.acknowledged && (
+            <button type="button" onClick={() => acknowledge(a.id)} disabled={busy === a.id}>Acquitter</button>
+          )}
+          {canDelete && (
+            <button type="button" className="ghost danger" onClick={() => remove(a)} disabled={busy === a.id}>Supprimer</button>
+          )}
+        </div>
       )
     }] : [])
   ];

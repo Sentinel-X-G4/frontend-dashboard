@@ -8,6 +8,7 @@ const PERMISSION_LABELS = {
   raiseAlert: "Donner l'alerte",
   stopAlert: "Arrêter l'alerte",
   acknowledge: 'Acquitter les alertes',
+  deleteAlerts: 'Supprimer les alertes',
   faces: 'Gérer les visages autorisés',
   users: 'Gérer les comptes',
   system: 'Consulter le service IoT',
