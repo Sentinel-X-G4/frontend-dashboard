@@ -110,6 +110,8 @@ function overallState(devices, camera, pending) {
   if (fire) return { tone: 'critical', icon: '!', title: 'Feu détecté', text: `Sur ${fire}. Vérifiez sur place et acquittez l'alerte une fois traitée.` };
   const gas = names((d) => live(d) && d.status === 'fuite_gaz');
   if (gas) return { tone: 'serious', icon: '!', title: 'Fuite de gaz détectée', text: `Sur ${gas}.` };
+  const flood = names((d) => live(d) && d.status === 'inondation');
+  if (flood) return { tone: 'serious', icon: '!', title: 'Inondation détectée', text: `Sur ${flood}.` };
   if (camera?.identity === 'unknown') {
     return { tone: 'critical', icon: '!', title: 'Inconnu devant la caméra', text: "Une personne non autorisée est visible en ce moment." };
   }
