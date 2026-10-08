@@ -1,50 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import { useCameraFeed } from '../live.jsx';
 import Logo from '../components/Logo.jsx';
 
-// Retour caméra pendant la connexion faciale : webcam de cet appareil (navigateur), pour se
-// cadrer avant de valider. Aucune image n'est envoyée : la reconnaissance reste faite par le
-// backend sur l'image de la caméra Sentinel. Caméra libérée dès qu'on quitte ce mode.
+// Retour de la caméra Sentinel pendant la connexion faciale : le même flux annoté par l'IA que
+// la supervision (visage reconnu ou non), pour se placer face à la caméra avant de valider
 function LoginCamera() {
-  const video = useRef(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let stream = null;
-    let stopped = false;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Aperçu indisponible : le navigateur n'autorise la caméra qu'en HTTPS");
-      return undefined;
-    }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      .then((s) => {
-        if (stopped) { s.getTracks().forEach((t) => t.stop()); return; }
-        stream = s;
-        if (video.current) video.current.srcObject = s;
-      })
-      .catch((err) => setError(err.name === 'NotAllowedError'
-        ? "Accès à la caméra refusé : autorisez-le dans le navigateur pour voir l'aperçu"
-        : "Aucune caméra disponible sur cet appareil pour l'aperçu"));
-    return () => {
-      stopped = true;
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-  }, []);
-
+  const { frame, live } = useCameraFeed();
   return (
-    <div className="camera-view login-camera">
-      {error ? (
+    <div className="camera-view">
+      {frame ? <img src={frame} alt="Image en direct de la caméra Sentinel" /> : (
         <div className="camera-empty">
           <span aria-hidden="true">◉</span>
-          {error}
+          Aucune image de la caméra Sentinel
         </div>
-      ) : (
-        <>
-          <video ref={video} autoPlay playsInline muted aria-label="Aperçu de la caméra" />
-          <span className="face-guide" aria-hidden="true" />
-        </>
       )}
+      <span className={`live-pill ${live ? 'on' : ''}`}>{live ? '● EN DIRECT' : '○ HORS LIGNE'}</span>
     </div>
   );
 }
@@ -101,7 +73,7 @@ export default function Login() {
         ) : (
           <>
             <LoginCamera />
-            <p className="hint">Placez-vous seul face à la caméra Sentinel, cadrez votre visage, puis validez.</p>
+            <p className="hint">Placez-vous seul face à la caméra Sentinel, attendez que votre visage soit reconnu, puis validez.</p>
           </>
         )}
         {error && <p className="error" role="alert">{error}</p>}

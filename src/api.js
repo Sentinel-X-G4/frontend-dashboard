@@ -43,8 +43,11 @@ export const getAlerts = (token, params = {}) => {
 };
 // Flux continu de la webcam (MJPEG) : réponse fetch dont le corps se lit image par image
 // (<img src> ne peut pas envoyer le Bearer). `signal` ferme le flux.
+// Sans jeton (page de connexion faciale) : même flux par la route publique /auth/face/stream.
 export async function openCameraStream(token, signal) {
-  const res = await fetch(`${BASE}/camera/stream`, { headers: { Authorization: `Bearer ${token}` }, signal });
+  const res = token
+    ? await fetch(`${BASE}/camera/stream`, { headers: { Authorization: `Bearer ${token}` }, signal })
+    : await fetch(`${BASE}/auth/face/stream`, { signal });
   if (!res.ok || !res.body) throw new Error(`Erreur ${res.status}`);
   return res;
 }

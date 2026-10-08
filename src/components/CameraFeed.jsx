@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react';
 import { useCameraFeed, useLive } from '../live.jsx';
 import { Badge, CAMERA_IDENTITY } from './ui.jsx';
 
 // Retour visuel de la webcam (images annotées par l'IA) + identité reconnue
 export default function CameraFeed() {
   const { camera } = useLive();
-  const { frame, lastFrameAt } = useCameraFeed();
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const live = frame && now - lastFrameAt < 5000;
+  const { frame, live } = useCameraFeed();
   const identity = CAMERA_IDENTITY[camera?.identity] || null;
 
   return (

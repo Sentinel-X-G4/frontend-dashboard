@@ -10,7 +10,11 @@ import * as api from './api.js';
 // Les courbes sont construites à partir des états d'appareils reçus (30 min gardées en mémoire).
 const LiveContext = createContext(null);
 const DATA_EVERY_MS = 500;
+// Flux tombé après avoir livré des images : reconnexion immédiate ; échec à l'ouverture : on
+// réessaie après 1 s, ou 10 s sur la page de connexion (route publique : 120 ouvertures / 15 min par IP)
 const STREAM_RETRY_MS = 1000;
+const PUBLIC_STREAM_RETRY_MS = 10000;
+const LIVE_MAX_AGE_MS = 5000;
 const HISTORY_MS = 30 * 60 * 1000;
 
 const point = (device) => ({
@@ -112,13 +116,20 @@ async function readMjpeg(body, onFrame) {
   }
 }
 
-// Image en direct de la webcam (URL blob), null tant qu'aucune image n'est arrivée.
-// Un seul flux MJPEG continu, ouvert seulement pendant que le composant est affiché ;
-// reconnexion automatique si le flux tombe.
+// Image en direct de la webcam (URL blob), null tant qu'aucune image n'est arrivée, et live =
+// une image reçue depuis moins de 5 s. Un seul flux MJPEG continu, ouvert seulement pendant que
+// le composant est affiché ; reconnexion automatique si le flux tombe. Fonctionne aussi sans
+// session (page de connexion faciale, voir api.openCameraStream).
 export function useCameraFeed() {
   const { token } = useAuth();
   const [frame, setFrame] = useState(null);
   const [lastFrameAt, setLastFrameAt] = useState(0);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -132,13 +143,15 @@ export function useCameraFeed() {
       setLastFrameAt(Date.now());
     };
     const connect = async () => {
+      let streamed = false;
       try {
         const res = await api.openCameraStream(token, abort.signal);
-        await readMjpeg(res.body, show);
+        await readMjpeg(res.body, (blob) => { streamed = true; show(blob); });
       } catch {
         // flux indisponible ou coupé : on réessaie
       }
-      if (!abort.signal.aborted) timer = setTimeout(connect, STREAM_RETRY_MS);
+      if (abort.signal.aborted) return;
+      timer = setTimeout(connect, streamed ? 0 : token ? STREAM_RETRY_MS : PUBLIC_STREAM_RETRY_MS);
     };
     connect();
     return () => {
@@ -149,5 +162,5 @@ export function useCameraFeed() {
     };
   }, [token]);
 
-  return { frame, lastFrameAt };
+  return { frame, live: Boolean(frame) && now - lastFrameAt < LIVE_MAX_AGE_MS };
 }
