@@ -12,19 +12,6 @@ export const SEVERITY = {
 };
 export const SEVERITIES = Object.keys(SEVERITY);
 
-// Statuts du service de détection (docs/BACKEND_CONTRACT.md)
-export const DEVICE_STATUS = {
-  feu: { label: 'Feu', tone: 'critical', icon: '🔥' },
-  fuite_gaz: { label: 'Fuite de gaz', tone: 'serious', icon: '⚠' },
-  presence: { label: 'Présence', tone: 'warning', icon: '👤' },
-  aucune: { label: 'RAS', tone: 'good', icon: '✓' }
-};
-export const DEVICE_STATE = {
-  ok: { label: 'En ligne', tone: 'good' },
-  warming_up: { label: 'Préchauffage', tone: 'warning' },
-  no_data: { label: 'Données insuffisantes', tone: 'serious' },
-  stale: { label: 'Hors ligne', tone: 'critical' }
-};
 export const CAMERA_IDENTITY = {
   none: { label: 'Personne', tone: 'neutral', icon: '○' },
   authorized: { label: 'Personne autorisée', tone: 'good', icon: '✓' },
@@ -63,9 +50,9 @@ export function Card({ title, actions, children, className = '' }) {
   );
 }
 
-export function StatTile({ label, value, hint, tone }) {
+export function StatTile({ label, value, hint }) {
   return (
-    <div className={`stat ${tone ? `stat-${tone}` : ''}`}>
+    <div className="stat">
       <span className="stat-label">{label}</span>
       <strong className="stat-value">{value ?? '—'}</strong>
       {hint && <span className="stat-hint">{hint}</span>}

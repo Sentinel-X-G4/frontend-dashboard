@@ -1,6 +1,6 @@
 // Rôles et droits du dashboard. Miroir des contrôles du backend (server.js) : le backend reste
 // seul juge, ces droits ne servent qu'à n'afficher que ce que le rôle peut faire.
-export const ROLES = ['superadmin', 'admin', 'user'];
+const ROLES = ['superadmin', 'admin', 'user'];
 
 export const ROLE_LABELS = {
   superadmin: 'Super admin',

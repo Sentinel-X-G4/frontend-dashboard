@@ -5,7 +5,7 @@ const BASE = '/api/v1';
 let onUnauthorized = () => {};
 export const setUnauthorizedHandler = (handler) => { onUnauthorized = handler; };
 
-export async function request(path, { method = 'GET', token, body } = {}) {
+async function request(path, { method = 'GET', token, body } = {}) {
   const res = await fetch(BASE + path, {
     method,
     headers: {
@@ -41,18 +41,6 @@ export const getAlerts = (token, params = {}) => {
   const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
   return request(`/alerts${query ? `?${query}` : ''}`, { token });
 };
-export const getAlert = (token, id) => request(`/alerts/${id}`, { token });
-export const getDevices = (token) => request('/devices', { token });
-export const getStats = (token) => request('/stats', { token });
-// Dernier état en base : { device_id, identity: 'none' | 'authorized' | 'unknown', person, names,
-// faces: [{ name }], ts, updated_at } ; erreur 503 si la caméra est hors ligne
-export const getCamera = (token) => request('/camera', { token });
-// Image courante de la webcam : <img src> ne peut pas envoyer le Bearer, d'où un blob -> URL
-export async function getCameraSnapshot(token) {
-  const res = await fetch(`${BASE}/camera/snapshot`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error(`Erreur ${res.status}`);
-  return URL.createObjectURL(await res.blob());
-}
 // Flux continu de la webcam (MJPEG) : réponse fetch dont le corps se lit image par image
 // (<img src> ne peut pas envoyer le Bearer). `signal` ferme le flux.
 export async function openCameraStream(token, signal) {
@@ -82,31 +70,12 @@ export async function getFaceImage(token, id) {
   return URL.createObjectURL(await res.blob());
 }
 
-// Commandes vers un module ESP (admin et superadmin), relayées au service de détection. Chaque
-// appel attend l'acquittement de l'ESP (5 s) : data = { command, state: { alert, buzzer, led, screen } }.
+// Alarme d'un module ESP (buzzer + LED rouge + « ALERT »), relayée au service de détection : tout
+// compte peut la donner, seuls les admins l'arrêtent. Attend l'acquittement de l'ESP (5 s) :
+// data = { command, state: { alert, buzzer, led, screen } }.
 // Erreurs : 400 invalide, 422 refusée par l'ESP, 503 service ou broker injoignable, 504 ESP hors ligne.
-const deviceCommand = (token, deviceId, command, body) =>
-  request(`/devices/${encodeURIComponent(deviceId)}/${command}`, { method: 'POST', token, body: body || {} });
-// state : 'on' | 'off' — alarme de l'ESP (buzzer + LED rouge + « ALERT »), seule façon de la déclencher
-export const setDeviceAlert = (token, deviceId, state) => deviceCommand(token, deviceId, 'alert', { state });
-// state : 'on' | 'off' | 'auto' (auto = suit l'alerte)
-export const setDeviceBuzzer = (token, deviceId, state) => deviceCommand(token, deviceId, 'buzzer', { state });
-// state : 'red' | 'green' | 'both' | 'off' | 'auto'
-export const setDeviceLed = (token, deviceId, state) => deviceCommand(token, deviceId, 'led', { state });
-// state : 'auto' | 'off' | 'message' (text obligatoire avec message : 100 caractères, ASCII)
-export const setDeviceScreen = (token, deviceId, state, text) =>
-  deviceCommand(token, deviceId, 'screen', text === undefined ? { state } : { state, text });
-// Alerte arrêtée, buzzer / LED / écran en mode auto
-export const resetDevice = (token, deviceId) => deviceCommand(token, deviceId, 'reset');
+export const setDeviceAlert = (token, deviceId, state) =>
+  request(`/devices/${encodeURIComponent(deviceId)}/alert`, { method: 'POST', token, body: { state } });
 
 // Service de détection (backend-iot-alerts), relayé par le backend
 export const getIotHealth = (token) => request('/iot/health', { token });
-// Entraînement de l'IA (superadmin) : sessions d'enregistrement étiquetées et rechargement du modèle
-export const getRecordings = (token) => request('/iot/recording', { token });
-// label : 'aucune' | 'presence' | 'fuite_gaz' | 'feu', combinables avec « + » (ex. 'presence+feu')
-export const startRecording = (token, deviceId, label, notes) =>
-  request('/iot/recording/start', { method: 'POST', token, body: { device_id: deviceId, label, ...(notes && { notes }) } });
-// Sans deviceId : arrête toutes les sessions en cours
-export const stopRecording = (token, deviceId) =>
-  request('/iot/recording/stop', { method: 'POST', token, body: deviceId ? { device_id: deviceId } : {} });
-export const reloadModel = (token) => request('/iot/reload-model', { method: 'POST', token, body: {} });

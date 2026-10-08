@@ -6,9 +6,6 @@ import Table from '../components/Table.jsx';
 import FaceCapture from '../components/FaceCapture.jsx';
 import { Badge, Card, ErrorText, Modal, RoleBadge } from '../components/ui.jsx';
 
-// Enregistre le visage d'un compte, capturé par la caméra Sentinel (nommé comme le compte : sert à la connexion faciale)
-const enrollFace = (token, username) => api.addFace(token, username);
-
 function CreateUser({ onDone }) {
   const { token, user } = useAuth();
   const roles = assignableRoles(user);
@@ -32,7 +29,7 @@ function CreateUser({ onDone }) {
     let warning = '';
     if (withFace) {
       try {
-        await enrollFace(token, form.username);
+        await api.addFace(token, form.username);
       } catch (err) {
         warning = `Compte créé, mais visage non enregistré : ${err.message}`;
       }
@@ -80,7 +77,7 @@ function AddFace({ account, onDone }) {
   const submit = async () => {
     setBusy(true);
     try {
-      await enrollFace(token, account.username);
+      await api.addFace(token, account.username);
       onDone(`Visage ajouté à ${account.username}`, true);
     } catch (err) {
       setError(err.message);

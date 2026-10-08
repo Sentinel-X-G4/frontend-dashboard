@@ -98,12 +98,10 @@ export default function Overview() {
   const [selected, setSelected] = useState('');
   const current = selected && devices[selected] ? selected : deviceIds[0];
 
-  const shownDevices = devices;
-
   const series = useMemo(() => history[current] || [], [history, current]);
   const chart = (key) => series.map((p) => ({ t: p.t, v: p[key] }));
-  const state = overallState(shownDevices, camera, stats?.unacknowledged || 0);
-  const online = Object.values(shownDevices).filter((d) => d.device_state === 'ok').length;
+  const state = overallState(devices, camera, stats?.unacknowledged || 0);
+  const online = Object.values(devices).filter((d) => d.device_state === 'ok').length;
 
   return (
     <div className="page">
@@ -115,7 +113,7 @@ export default function Overview() {
         <p>{state.text}</p>
         <dl className="hero-stats">
           <div><dd><Link to="/alerts">{stats?.unacknowledged ?? '—'}</Link></dd><dt>alertes à traiter</dt></div>
-          <div><dd>{online} / {Object.keys(shownDevices).length}</dd><dt>appareils en ligne</dt></div>
+          <div><dd>{online} / {Object.keys(devices).length}</dd><dt>appareils en ligne</dt></div>
           <div><dd>{stats?.bySeverity?.critical ?? '—'}</dd><dt>alertes critiques</dt></div>
         </dl>
       </section>

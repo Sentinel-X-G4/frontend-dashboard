@@ -59,7 +59,7 @@ h2 { font-size: 1rem; margin: 0; font-weight: 600; }
 a { color: var(--accent); }
 .muted { color: var(--muted); }
 .small { font-size: .85em; }
-.num, td { font-variant-numeric: tabular-nums; }
+td { font-variant-numeric: tabular-nums; }
 
 /* Contrôles */
 button {
@@ -147,26 +147,6 @@ label.check { flex-direction: row; align-items: center; gap: .5rem; }
 .role { font-size: .75rem; padding: .1rem .5rem; border-radius: 6px; border: 1px solid var(--border); color: var(--text-2); white-space: nowrap; }
 .role-superadmin { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .role-admin { border-color: var(--accent); color: var(--accent); }
-
-/* Appareils */
-.devices { display: flex; flex-direction: column; gap: .8rem; }
-.device { border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 14px; padding: .8rem; display: flex; flex-direction: column; gap: .6rem; }
-.tone-border-good { border-left-color: var(--good); }
-.tone-border-warning { border-left-color: var(--warning); }
-.tone-border-serious { border-left-color: var(--serious); }
-.tone-border-critical { border-left-color: var(--critical); }
-.device header { display: flex; justify-content: space-between; align-items: center; }
-.device-status { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; font-size: .85rem; }
-.device-alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; }
-.device-alerts li { display: grid; grid-template-columns: 6rem 1fr 3rem; align-items: center; gap: .6rem; color: var(--text-2); }
-.device-alerts li.active { color: var(--text); font-weight: 600; }
-.bar { display: block; height: .45rem; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
-.bar > span { display: block; height: 100%; background: var(--muted); border-radius: 999px; }
-.device-alerts li.active .bar > span { background: var(--series); }
-.device-alerts .num { text-align: right; }
-.device footer { font-size: .8rem; }
-.device-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
-.device-actions .error { flex-basis: 100%; font-size: .85rem; }
 
 /* Alarme d'un appareil : état + deux grands boutons */
 .alarm-controls { display: flex; flex-direction: column; gap: 1rem; }
