@@ -35,18 +35,31 @@ function AlarmControls({ deviceId }) {
   };
 
   return (
-    <div className="device-actions">
-      {alarm && (
-        <Badge tone={alarm === 'on' ? 'critical' : 'good'} icon={alarm === 'on' ? '🔔' : '✓'}>
-          {alarm === 'on' ? 'Alarme en cours' : 'Alarme arrêtée'}
-        </Badge>
-      )}
-      {can(user, 'raiseAlert') && (
-        <button type="button" className="danger" disabled={busy} onClick={() => send('on')}>Donner l'alerte</button>
-      )}
-      {can(user, 'stopAlert') && (
-        <button type="button" className="ghost" disabled={busy} onClick={() => send('off')}>Arrêter l'alerte</button>
-      )}
+    <div className="alarm-controls">
+      <div className={`alarm-state ${alarm ? `is-${alarm}` : ''}`} role="status">
+        <span className="alarm-state-dot" aria-hidden="true" />
+        {alarm === 'on' ? 'Alarme en cours' : alarm === 'off' ? 'Alarme arrêtée' : "État de l'alarme inconnu"}
+      </div>
+      <div className="alarm-buttons">
+        {can(user, 'raiseAlert') && (
+          <button type="button" className="alarm-btn raise" disabled={busy} onClick={() => send('on')}>
+            <span className="alarm-btn-icon" aria-hidden="true">🔔</span>
+            <span className="alarm-btn-text">
+              <strong>Donner l'alerte</strong>
+              <small>Buzzer, LED rouge, « ALERT »</small>
+            </span>
+          </button>
+        )}
+        {can(user, 'stopAlert') && (
+          <button type="button" className="alarm-btn stop" disabled={busy} onClick={() => send('off')}>
+            <span className="alarm-btn-icon" aria-hidden="true">■</span>
+            <span className="alarm-btn-text">
+              <strong>Arrêter l'alerte</strong>
+              <small>Retour au mode automatique</small>
+            </span>
+          </button>
+        )}
+      </div>
       <ErrorText>{error}</ErrorText>
     </div>
   );
@@ -116,7 +129,7 @@ export default function Overview() {
             ? <Empty>Aucun appareil n'a encore remonté d'état.</Empty>
             : (
               <>
-                <p className="hint">Sur {current} : le buzzer sonne, la LED passe au rouge et l'écran affiche « ALERT ».</p>
+                <p className="hint">Appareil {current}</p>
                 <AlarmControls key={current} deviceId={current} />
               </>
             )}

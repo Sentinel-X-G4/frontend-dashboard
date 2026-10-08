@@ -70,7 +70,9 @@ button:hover:not(:disabled) { filter: brightness(1.08); }
 button:disabled { opacity: .55; cursor: default; }
 button.ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
 button.ghost:hover:not(:disabled) { background: var(--surface-2); filter: none; }
-button.danger { color: var(--critical-ink); }
+button.danger { background: var(--critical); color: #fff; }
+button.ghost.danger { background: transparent; color: var(--critical-ink); border-color: color-mix(in srgb, var(--critical) 45%, transparent); }
+button.ghost.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--critical) 10%, transparent); }
 button.icon { padding: .3rem .55rem; line-height: 1; }
 input, select {
   font: inherit; padding: .6rem .85rem; border: 1px solid transparent; border-radius: 12px;
@@ -165,6 +167,39 @@ label.check { flex-direction: row; align-items: center; gap: .5rem; }
 .device footer { font-size: .8rem; }
 .device-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 .device-actions .error { flex-basis: 100%; font-size: .85rem; }
+
+/* Alarme d'un appareil : état + deux grands boutons */
+.alarm-controls { display: flex; flex-direction: column; gap: 1rem; }
+.alarm-state { display: flex; align-items: center; gap: .55rem; font-weight: 600; color: var(--text-2); }
+.alarm-state-dot { width: .7rem; height: .7rem; border-radius: 50%; background: var(--muted); flex: none; }
+.alarm-state.is-on { color: var(--critical-ink); }
+.alarm-state.is-on .alarm-state-dot { background: var(--critical); animation: alarm-ring 1.2s ease-out infinite; }
+.alarm-state.is-off { color: var(--good-ink); }
+.alarm-state.is-off .alarm-state-dot { background: var(--good); }
+.alarm-buttons { display: grid; gap: .7rem; }
+.alarm-btn {
+  display: flex; align-items: center; gap: .9rem; width: 100%; text-align: left; white-space: normal;
+  padding: .95rem 1.1rem; border-radius: 14px; border: 1px solid transparent;
+  transition: transform .08s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.alarm-btn:active:not(:disabled) { transform: scale(.985); }
+.alarm-btn-icon {
+  flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 1.1rem;
+}
+.alarm-btn-text { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+.alarm-btn-text strong { font-size: 1rem; font-weight: 650; }
+.alarm-btn-text small { font-size: .8rem; font-weight: 400; opacity: .85; }
+.alarm-btn.raise {
+  background: var(--critical); color: #fff;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--critical) 35%, transparent);
+}
+.alarm-btn.raise .alarm-btn-icon { background: #ffffff26; }
+.alarm-btn.raise:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 8px 24px color-mix(in srgb, var(--critical) 45%, transparent); }
+.alarm-btn.stop { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.alarm-btn.stop .alarm-btn-icon { background: var(--surface); color: var(--text-2); font-size: .85rem; }
+.alarm-btn.stop:hover:not(:disabled) { filter: none; background: color-mix(in srgb, var(--text) 8%, var(--surface-2)); }
+.alarm-controls .error { font-size: .85rem; }
 
 /* Caméra */
 .camera { display: flex; flex-direction: column; gap: .7rem; }
@@ -269,6 +304,13 @@ td.empty, .empty { color: var(--muted); text-align: center; padding: 1.2rem; }
 .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .login { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: .9rem; padding: 2rem; }
 .login > .muted { text-align: center; margin: -.6rem 0 .2rem; }
+.login.with-camera { max-width: 460px; }
+.login-camera { border-radius: 12px; }
+.login-camera video { width: 100%; height: 100%; object-fit: cover; display: block; transform: scaleX(-1); }
+.face-guide {
+  position: absolute; left: 50%; top: 47%; width: 42%; aspect-ratio: 3 / 4; transform: translate(-50%, -50%);
+  border: 2px dashed #ffffffb3; border-radius: 50%; box-shadow: 0 0 0 100vmax #00000059; pointer-events: none;
+}
 
 /* Mobile */
 @media (max-width: 900px) {
@@ -311,6 +353,7 @@ td.empty, .empty { color: var(--muted); text-align: center; padding: 1.2rem; }
 
 /* Mouvement réduit : signal fixe, sans clignotement */
 @media (prefers-reduced-motion: reduce) {
-  .shell.alarming::after, .alarm-banner, .alarm-icon, .hero-dot { animation: none; }
+  .shell.alarming::after, .alarm-banner, .alarm-icon, .hero-dot, .alarm-state-dot { animation: none; }
+  .alarm-btn { transition: none; }
   .shell.alarming::after { opacity: .8; }
 }

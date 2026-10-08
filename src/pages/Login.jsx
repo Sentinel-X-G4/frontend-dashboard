@@ -1,7 +1,53 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import Logo from '../components/Logo.jsx';
+
+// Retour caméra pendant la connexion faciale : webcam de cet appareil (navigateur), pour se
+// cadrer avant de valider. Aucune image n'est envoyée : la reconnaissance reste faite par le
+// backend sur l'image de la caméra Sentinel. Caméra libérée dès qu'on quitte ce mode.
+function LoginCamera() {
+  const video = useRef(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let stream = null;
+    let stopped = false;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Aperçu indisponible : le navigateur n'autorise la caméra qu'en HTTPS");
+      return undefined;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      .then((s) => {
+        if (stopped) { s.getTracks().forEach((t) => t.stop()); return; }
+        stream = s;
+        if (video.current) video.current.srcObject = s;
+      })
+      .catch((err) => setError(err.name === 'NotAllowedError'
+        ? "Accès à la caméra refusé : autorisez-le dans le navigateur pour voir l'aperçu"
+        : "Aucune caméra disponible sur cet appareil pour l'aperçu"));
+    return () => {
+      stopped = true;
+      stream?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  return (
+    <div className="camera-view login-camera">
+      {error ? (
+        <div className="camera-empty">
+          <span aria-hidden="true">◉</span>
+          {error}
+        </div>
+      ) : (
+        <>
+          <video ref={video} autoPlay playsInline muted aria-label="Aperçu de la caméra" />
+          <span className="face-guide" aria-hidden="true" />
+        </>
+      )}
+    </div>
+  );
+}
 
 // Connexion par mot de passe, ou par reconnaissance faciale : la personne se place seule
 // devant la caméra Sentinel, le backend vérifie que le visage vu est celui du compte.
@@ -31,7 +77,7 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <form className="card login" onSubmit={submit}>
+      <form className={`card login ${mode === 'face' ? 'with-camera' : ''}`} onSubmit={submit}>
         <div className="brand big">
           <Logo size={72} />
           <span>Sentinel-X</span>
@@ -53,7 +99,10 @@ export default function Login() {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
           </label>
         ) : (
-          <p className="hint">Placez-vous seul face à la caméra Sentinel, puis validez. Non disponible pour les super admins.</p>
+          <>
+            <LoginCamera />
+            <p className="hint">Placez-vous seul face à la caméra Sentinel, cadrez votre visage, puis validez.</p>
+          </>
         )}
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" disabled={busy}>
